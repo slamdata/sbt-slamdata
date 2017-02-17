@@ -1,4 +1,5 @@
 import sbtslamdata.BuildInfo
+import slamdata.Publish
 
 lazy val root = Project("root", file("."))
   .settings(

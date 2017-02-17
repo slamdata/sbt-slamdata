@@ -1,3 +1,4 @@
+package slamdata
 
 import sbt._, Keys._
 
@@ -5,8 +6,7 @@ import com.typesafe.sbt.SbtPgp.autoImportImpl.PgpKeys
 import sbtrelease.ReleasePlugin.autoImport.{
   releaseCrossBuild, releasePublishArtifactsAction}
 
-// TODO: Duplication with Base
-object Publish {
+class Publish {
   lazy val checkHeaders = taskKey[Unit]("Fail the build if createHeaders is not up-to-date")
 
   lazy val commonPublishSettings = Seq(
@@ -45,3 +45,5 @@ object Publish {
     publishLocal := (),
     publishArtifact := false)
 }
+
+object Publish extends Publish
