@@ -46,5 +46,4 @@ object CommonDependencies {
     val scalazSpecs2 = "org.typelevel"              %% "scalaz-specs2"     % scalazSpecs2Version
   }
 
-
 }
