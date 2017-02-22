@@ -18,7 +18,7 @@ if [[
   openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in pubring.pgp.enc -out project/local.pubring.pgp -d
   openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in credentials.sbt.enc -out local.credentials.sbt -d
 
-  sbt ++"$TRAVIS_SCALA_VERSION" publishSigned
+  sbt ++"$TRAVIS_SCALA_VERSION" publishSigned sonatypeRelease
 
   # Only tag on first travis job
   if [[ "${TRAVIS_JOB_NUMBER##*.}" == "1" ]]; then
