@@ -13,4 +13,13 @@ lazy val root = Project("root", file("."))
     addSbtPlugin("com.dwijnand"      % "sbt-travisci"    % BuildInfo.sbtTravisCiVersion),
     addSbtPlugin("de.heikoseeberger" % "sbt-header"      % "1.7.0"),
     addSbtPlugin("org.wartremover"   % "sbt-wartremover" % "2.0.2"))
-  .settings(Publish.commonPublishSettings)
+  .settings(publishSettings)
+
+lazy val publishSettings = Publish.commonPublishSettings ++ Seq(
+  organizationName := "SlamData Inc.",
+  organizationHomepage := Some(url("http://slamdata.com")),
+  homepage := Some(url("https://github.com/slamdata/sbt-slamdata")),
+  scmInfo := Some(
+    ScmInfo(
+      url("https://github.com/slamdata/sbt-slamdata"),
+      "scm:git@github.com:slamdata/sbt-slamdata.git")))
