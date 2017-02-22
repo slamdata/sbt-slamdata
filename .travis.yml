@@ -1,12 +1,12 @@
 language: scala
 scala:
-  - 2.10.6
+- 2.10.6
 jdk:
-  - oraclejdk8
+- oraclejdk8
 sudo: false
 script:
-  - sbt compile
-  - scripts/publishAndTag 'slamdata/sbt-slamdata'
+- sbt compile
+- scripts/publishAndTag 'slamdata/sbt-slamdata'
 env:
   global:
-    - secure: nxTDurFKCJUnm5caGc7WGN1xJbStxtZECafvll0TClXVmgs907kRwOhL1EX3AwU2cigHI0TV1p3/ZqcSUJGQeqYHNRwxW3+N6yyg7disuDfeaPZ8/Q04SlHbG7/hp5AbZJW7hGpCHgv8cMGl9AJVTEaS+ipV5zr6Ts+JpjtOGhw=
+  - secure: QYLnqcmx9zna6dTcp9gaIKr+XzGaAbE8rBVEzkyRr6pFxRg4zADdLg+mxU03DszS0Sc5WnzrVzHlxEC3IH7EbjbCl3OyVFsfop+TVS0hz17EWHUdL5cvcgqPZRzT2N6bhcQ1KWEP188GPVBHayz11KNc/LCOS/YWJHYjzc6kRaNc7SRPY2pkF91zsy41eWwyuyj6hvMSm8H9nh2dBNIbzwUSg2FgzkvDsvQILwZC+9HWjMATyc5eh3BsdBGjVUqopiJkZLkrH/yf/VhNJSs0RkrgNFEUgY0QnI2ys3CpJ7zqTc7r/+z2H0PxTYX9G93+PbU23/erJbqdgwDH2RgBfqxrGRBrqIoGcUOc3TSf7qP0io0JM0nGw0F5SiB1sirPqYoXXAl/xLVtxVE018XgwpMrew6sFc2TQJfwOYRHJsYrmAzTGcgHScyLjqaQEZlJiP32rEPcaCQ3xiMNrYRrU1E0BXFEF3A4gyBx5oWNmBa02yv+N326DBv36K2pG8iAAZsNNBh6LG2tBhM82nWdmWlXq1/AXjowW15RenngOhexV90ETV2933iqM8DOWuenGbbYrD+SeZdLpur+kO9rSAuHczwVAtGO/qKIGCWOFP2kkhJgonZhm8J5IBpUvyKDnS4Hl18mQpOzqjoizF4NZgKziG1nUPCWpZ5EXUb/McQ=
