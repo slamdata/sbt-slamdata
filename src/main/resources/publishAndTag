@@ -18,9 +18,12 @@ if [[
   openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in pubring.pgp.enc -out project/local.pubring.pgp -d
   openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in credentials.sbt.enc -out local.credentials.sbt -d
 
-  SONA_DESC="${PROJECT}_${VERSION}_${TRAVIS_SCALA_VERSION}"
+  # Only publish on oraclejdk8
+  if [[ $JAVA_HOME == *"java-8-oracle" ]]; then
+    SONA_DESC="${PROJECT}_${VERSION}_${TRAVIS_SCALA_VERSION}"
 
-  sbt ++"$TRAVIS_SCALA_VERSION" "sonatypeOpen $SONA_DESC" publishSigned sonatypeRelease
+    sbt ++"$TRAVIS_SCALA_VERSION" "sonatypeOpen $SONA_DESC" publishSigned sonatypeRelease
+  fi
 
   # Only tag on first travis job
   if [[ "${TRAVIS_JOB_NUMBER##*.}" == "1" ]]; then
