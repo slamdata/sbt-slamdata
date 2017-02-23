@@ -3,6 +3,9 @@ package slamdata
 import sbt._, Keys._
 
 import java.io.File
+import java.nio.file.attribute.PosixFilePermission, PosixFilePermission.OWNER_EXECUTE
+import java.nio.file.Files
+import scala.collection.JavaConverters._
 
 import com.typesafe.sbt.SbtPgp.autoImportImpl.PgpKeys
 import de.heikoseeberger.sbtheader.HeaderKey.{createHeaders, headers}
@@ -102,15 +105,19 @@ object SbtSlamData extends AutoPlugin {
 
       val baseDir = (baseDirectory in ThisBuild).value
 
-      def transfer(src: String, dst: File) = {
+      def transfer(src: String, dst: File, permissions: Set[PosixFilePermission] = Set()) = {
         val srcʹ = getClass.getClassLoader.getResourceAsStream(src)
 
         log.info(s"transferring $src to $dst")
 
         IO.transfer(srcʹ, dst)
+
+        Files.setPosixFilePermissions(
+          dst.toPath,
+          (Files.getPosixFilePermissions(dst.toPath).asScala ++ permissions).asJava)
       }
 
-      transfer("publishAndTag",       baseDir / "scripts" / "publishAndTag")
+      transfer("publishAndTag",       baseDir / "scripts" / "publishAndTag", Set(OWNER_EXECUTE))
       transfer("credentials.sbt.enc", baseDir / "credentials.sbt.enc")
       transfer("pubring.pgp.enc",     baseDir / "pubring.pgp.enc")
       transfer("secring.pgp.enc",     baseDir / "secring.pgp.enc")
