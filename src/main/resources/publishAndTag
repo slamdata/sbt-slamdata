@@ -26,6 +26,9 @@ if [[
     TAG=v$VERSION
     TAG_MSG="$PROJECT $VERSION"
 
+    # Don't log auth token
+    set +x
+
     TAGS_RESP=$(curl -X POST -d '{
         "tag": "'"$TAG"'",
         "object": "'"$HEAD_SHA"'",
