@@ -9,7 +9,7 @@ object CommonDependencies {
   val scalazVersion         = "7.2.8"
   val scalazSpecs2Version   = "0.5.0"
   val simulacrumVersion     = "0.10.0"
-  val slamdataPredefVersion = "0.0.1"
+  val slamdataPredefVersion = "0.0.2"
   val specs2Version         = "3.8.7"
 
   object argonaut {
