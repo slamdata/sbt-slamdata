@@ -20,9 +20,7 @@ if [[
 
   # Only publish on oraclejdk8
   if [[ $JAVA_HOME == *"java-8-oracle" ]]; then
-    SONA_DESC="${PROJECT}_${VERSION}_${TRAVIS_SCALA_VERSION}"
-
-    sbt ++"$TRAVIS_SCALA_VERSION" "sonatypeOpen $SONA_DESC" publishSigned sonatypeRelease
+    sbt ++"$TRAVIS_SCALA_VERSION" publishSigned sonatypeReleaseAll
   fi
 
   # Only tag on first travis job
