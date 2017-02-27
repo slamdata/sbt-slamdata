@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -xeuo pipefail # STRICT MODE
+set -euo pipefail # STRICT MODE
 IFS=$'\n\t'        # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 
 VERSION=$(sed 's/.*"\(.*\)"/\1/' version.sbt)
@@ -21,16 +21,16 @@ if [[
   # Only publish on oraclejdk8
   if [[ $JAVA_HOME == *"java-8-oracle" ]]; then
     sbt ++"$TRAVIS_SCALA_VERSION" publishSigned sonatypeReleaseAll
+  else
+    echo "Travis not running against oraclejdk8, so skipping publish"
   fi
+
 
   # Only tag on first travis job
   if [[ "${TRAVIS_JOB_NUMBER##*.}" == "1" ]]; then
     HEAD_SHA=$(git rev-parse HEAD)
     TAG=v$VERSION
     TAG_MSG="$PROJECT $VERSION"
-
-    # Don't log auth token
-    set +x
 
     TAGS_RESP=$(curl -X POST -d '{
         "tag": "'"$TAG"'",
