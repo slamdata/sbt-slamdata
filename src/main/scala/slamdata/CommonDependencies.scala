@@ -3,8 +3,14 @@ package slamdata
 import sbt._, Keys._
 
 object CommonDependencies {
+  // RC2 conflicts with http4s 0.14.1a, but we're evicting to it anyway
   val argonautVersion       = "6.2-RC2"
   val doobieVersion         = "0.3.0"
+  // TODO: Upgrade to `0.15.2a` (or above) once we can figure out a fix for:
+  // https://github.com/quasar-analytics/quasar/issues/1852
+  // Although this issue will be closed by the current commit that downgrades it,
+  // it's still an issue that needs to be considered for anyone attempting to upgrade
+  val http4sVersion         = "0.14.1a"
   val monocleVersion        = "1.4.0"
   // waiting for a stable release with fix for fthomas/refined#256
   val refinedVersion        = "0.6.2"
@@ -26,7 +32,19 @@ object CommonDependencies {
 
   object doobie {
     val core                = "org.tpolecat"               %% "doobie-core"               % doobieVersion
+    val h2                  = "org.tpolecat"               %% "doobie-contrib-h2"         % doobieVersion
+    val hikari              = "org.tpolecat"               %% "doobie-contrib-hikari"     % doobieVersion
     val postgres            = "org.tpolecat"               %% "doobie-contrib-postgresql" % doobieVersion
+    val specs2              = "org.tpolecat"               %% "doobie-contrib-specs2"     % doobieVersion
+  }
+
+  object http4s {
+    // TODO: Switch to `http4s-argonaut` once http4s can be upgraded (see above)
+    val argonaut62          = "org.http4s"                 %% "http4s-argonaut62"         % http4sVersion
+    val blazeClient         = "org.http4s"                 %% "http4s-blaze-client"       % http4sVersion
+    val blazeServer         = "org.http4s"                 %% "http4s-blaze-server"       % http4sVersion
+    val core                = "org.http4s"                 %% "http4s-core"               % http4sVersion
+    val dsl                 = "org.http4s"                 %% "http4s-dsl"                % http4sVersion
   }
 
   object scalacheck {
@@ -34,8 +52,8 @@ object CommonDependencies {
   }
 
   object scalaz {
-    val core                = "org.scalaz"                 %% "scalaz-core"               % scalazVersion
     val concurrent          = "org.scalaz"                 %% "scalaz-concurrent"         % scalazVersion
+    val core                = "org.scalaz"                 %% "scalaz-core"               % scalazVersion
     val iteratee            = "org.scalaz"                 %% "scalaz-iteratee"           % scalazVersion
     val scalacheckBinding   = "org.scalaz"                 %% "scalaz-scalacheck-binding" % (scalazVersion + "-scalacheck-1.13")
 
