@@ -5,6 +5,7 @@ import sbt._, Keys._
 object CommonDependencies {
   val argonautVersion       = "6.2-RC2"
   val doobieVersion         = "0.3.0"
+  val http4sVersion         = "0.14.1a"
   val monocleVersion        = "1.4.0"
   // waiting for a stable release with fix for fthomas/refined#256
   val refinedVersion        = "0.6.2"
@@ -26,7 +27,17 @@ object CommonDependencies {
 
   object doobie {
     val core                = "org.tpolecat"               %% "doobie-core"               % doobieVersion
+    val h2                  = "org.tpolecat"               %% "doobie-contrib-h2"         % doobieVersion
+    val hikari              = "org.tpolecat"               %% "doobie-contrib-hikari"     % doobieVersion
     val postgres            = "org.tpolecat"               %% "doobie-contrib-postgresql" % doobieVersion
+    val specs2              = "org.tpolecat"               %% "doobie-contrib-specs2"     % doobieVersion
+  }
+
+  object http4s {
+    val argonaut62          = "org.http4s"                 %% "http4s-argonaut62"         % http4sVersion
+    val blazeClient         = "org.http4s"                 %% "http4s-blaze-client"       % http4sVersion
+    val core                = "org.http4s"                 %% "http4s-core"               % http4sVersion
+    val dsl                 = "org.http4s"                 %% "http4s-dsl"                % http4sVersion
   }
 
   object scalacheck {
@@ -34,8 +45,8 @@ object CommonDependencies {
   }
 
   object scalaz {
-    val core                = "org.scalaz"                 %% "scalaz-core"               % scalazVersion
     val concurrent          = "org.scalaz"                 %% "scalaz-concurrent"         % scalazVersion
+    val core                = "org.scalaz"                 %% "scalaz-core"               % scalazVersion
     val iteratee            = "org.scalaz"                 %% "scalaz-iteratee"           % scalazVersion
     val scalacheckBinding   = "org.scalaz"                 %% "scalaz-scalacheck-binding" % (scalazVersion + "-scalacheck-1.13")
 
