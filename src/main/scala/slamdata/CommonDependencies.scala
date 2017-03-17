@@ -12,8 +12,7 @@ object CommonDependencies {
   // it's still an issue that needs to be considered for anyone attempting to upgrade
   val http4sVersion         = "0.14.1a"
   val monocleVersion        = "1.4.0"
-  // waiting for a stable release with fix for fthomas/refined#256
-  val refinedVersion        = "0.6.2"
+  val refinedVersion        = "0.8.0"
   val scalacheckVersion     = "1.13.4"
   val scalazVersion         = "7.2.9"
   val scalazSpecs2Version   = "0.5.0"
