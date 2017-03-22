@@ -1,4 +1,5 @@
-val sbtPgpVersion      = "1.0.1"
+// Holding at 1.0.0 until sbt/sbt-pgp#97 is addressed
+val sbtPgpVersion      = "1.0.0"
 val sbtReleaseVersion  = "1.0.4"
 val sbtSonatypeVersion = "1.1"
 val sbtTravisCiVersion = "1.0.0"
