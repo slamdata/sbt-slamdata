@@ -23,7 +23,7 @@ object SbtSlamData extends AutoPlugin {
   object autoImport extends Base
 
   class Base extends Publish {
-    val commonScalacOptions_2_10 = Seq(
+    val scalacOptions_2_10 = Seq(
       "-deprecation",
       "-encoding", "UTF-8",
       "-feature",
@@ -40,15 +40,22 @@ object SbtSlamData extends AutoPlugin {
       "-Ywarn-numeric-widen",
       "-Ywarn-value-discard")
 
+    val scalacOptions_2_11 = Seq(
+      "-Ydelambdafy:method",
+      "-Yliteral-types",
+      "-Ypartial-unification",
+      "-Ywarn-unused-import")
+
+    val scalacOptions_2_12 = Seq(
+      "-Xstrict-patmat-analysis",
+      "-Yinduction-heuristics",
+      "-Ykind-polymorphism")
+
     lazy val commonBuildSettings = Seq(
-      scalaOrganization := (
-        scalaPartialVersion.value collect {
-          case (2, 12)  => "org.typelevel"
-        } getOrElse (scalaVersion.value match {
-          case "2.11.7" => "org.typelevel"
-          case "2.11.8" => "org.typelevel"
-          case _        => "org.scala-lang"
-        })),
+      scalaOrganization := (CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((2, 11)) | Some((2, 12)) => "org.typelevel"
+        case _                             => "org.scala-lang"
+      }),
       headers := Map(
         ("scala", Apache2_0("2014–2017", "SlamData Inc.")),
         ("java",  Apache2_0("2014–2017", "SlamData Inc."))),
@@ -67,12 +74,12 @@ object SbtSlamData extends AutoPlugin {
         "bintray/non" at "http://dl.bintray.com/non/maven"),
       addCompilerPlugin("org.spire-math"  %% "kind-projector" % "0.9.3"),
       addCompilerPlugin("org.scalamacros" %  "paradise"       % "2.1.0" cross CrossVersion.full),
-      scalacOptions ++= commonScalacOptions_2_10,
-      scalacOptions ++= post210(scalaVersion.value, Seq(
-        "-Ydelambdafy:method",
-        "-Yliteral-types",
-        "-Ypartial-unification",
-        "-Ywarn-unused-import")),
+
+      scalacOptions := (CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((2, 12)) => scalacOptions_2_10 ++ scalacOptions_2_11 ++ scalacOptions_2_12
+        case Some((2, 11)) => scalacOptions_2_10 ++ scalacOptions_2_11
+        case _             => scalacOptions_2_10
+      }),
       scalacOptions in (Test, console) --= Seq(
         "-Yno-imports",
         "-Ywarn-unused-import"),
@@ -81,19 +88,12 @@ object SbtSlamData extends AutoPlugin {
         Wart.Any,                   // - see puffnfresh/wartremover#263
         Wart.ExplicitImplicitTypes, // - see puffnfresh/wartremover#226
         Wart.ImplicitConversion,    // - see mpilquist/simulacrum#35
-        Wart.Nothing,               // - see puffnfresh/wartremover#263
-        Wart.Overloading),           // Falsely triggers on 2.10
-      wartremoverWarnings in (Compile, compile) ++=
-        post210(scalaVersion.value, Seq(Wart.Overloading))
-    )
-
-    lazy val scalaPartialVersion = Def setting (CrossVersion partialVersion scalaVersion.value)
-
-    def post210[A](version: String, settings: Seq[A]): Seq[A] =
-      CrossVersion.partialVersion(version) match {
-        case Some((2, 11)) | Some((2, 12)) => settings
-        case _                             => Nil
-      }
+        Wart.Nothing),              // - see puffnfresh/wartremover#263
+      wartremoverWarnings in (Compile, compile) --=
+        (CrossVersion.partialVersion(scalaVersion.value) match {
+          case Some((2, 11)) | Some((2, 12)) => Nil
+          case _                             => Seq(Wart.Overloading) // Falsely triggers on 2.10
+        }))
   }
 
   lazy val transferPublishAndTagResources = {

@@ -13,7 +13,7 @@ lazy val root = Project("root", file("."))
     addSbtPlugin("org.xerial.sbt"    % "sbt-sonatype"    % BuildInfo.sbtSonatypeVersion),
     addSbtPlugin("com.dwijnand"      % "sbt-travisci"    % BuildInfo.sbtTravisCiVersion),
     addSbtPlugin("de.heikoseeberger" % "sbt-header"      % "1.7.0"),
-    addSbtPlugin("org.wartremover"   % "sbt-wartremover" % "2.0.2"))
+    addSbtPlugin("org.wartremover"   % "sbt-wartremover" % "2.0.3"))
   .settings(publishSettings)
 
 lazy val publishSettings = Publish.commonPublishSettings ++ Seq(
