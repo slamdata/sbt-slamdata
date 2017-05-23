@@ -8,10 +8,10 @@ VERSION=$(sed 's/.*"\(.*\)"/\1/' version.sbt)
 REPO_SLUG="$1"
 PROJECT=$(sed 's/.*\///' <<< "$REPO_SLUG")
 
-# only publish and tag on ${REPO_SLUG}#master
+# only publish and tag on ${REPO_SLUG}#master and ${REPO_SLUG}#backport/*
 if [[
-    "$TRAVIS_PULL_REQUEST" == "false"      &&
-    "$TRAVIS_BRANCH"       == "master"     &&
+    "$TRAVIS_PULL_REQUEST" == "false"                                &&
+    ("$TRAVIS_BRANCH" == "master" || "$TRAVIS_BRANCH" == backport/*) &&
     "$TRAVIS_REPO_SLUG"    == "$REPO_SLUG"
   ]] ; then
   openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in secring.pgp.enc -out project/local.secring.pgp -d
@@ -57,5 +57,5 @@ if [[
       "https://api.github.com/repos/${TRAVIS_REPO_SLUG}/git/refs"
   fi
 else
-  echo "Travis not running in ${REPO_SLUG}#master, so skipping publishAndTag"
+  echo "Travis not running in ${REPO_SLUG}#master or ${REPO_SLUG}#backport/*, so skipping publishAndTag"
 fi
