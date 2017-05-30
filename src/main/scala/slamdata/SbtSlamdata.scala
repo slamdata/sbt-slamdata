@@ -73,7 +73,7 @@ object SbtSlamData extends AutoPlugin {
         "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
         "bintray/non" at "http://dl.bintray.com/non/maven"),
       addCompilerPlugin("org.spire-math"  %% "kind-projector" % "0.9.3"),
-      addCompilerPlugin("org.scalamacros" %  "paradise"       % "2.1.0" cross CrossVersion.full),
+      addCompilerPlugin("org.scalamacros" %  "paradise"       % "2.1.0" cross CrossVersion.patch),
 
       scalacOptions := (CrossVersion.partialVersion(scalaVersion.value) match {
         case Some((2, 12)) => scalacOptions_2_10 ++ scalacOptions_2_11 ++ scalacOptions_2_12
