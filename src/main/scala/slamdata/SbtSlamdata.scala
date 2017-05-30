@@ -51,15 +51,6 @@ object SbtSlamData extends AutoPlugin {
       "-Yinduction-heuristics",
       "-Ykind-polymorphism")
 
-    // TLS from 2.11.11 and beyond has random suffixes (messes up macro paradise)
-    def stripTLSVersion(version: String): String = {
-      val MajorMinorPatch = """^(\d+)\.(\d+)\.(\d+)""".r
-
-      version match {
-        case MajorMinorPatch(major, minor, patch) => s"$major.$minor.$patch"
-      }
-    }
-
     lazy val commonBuildSettings = Seq(
       scalaOrganization := (CrossVersion.partialVersion(scalaVersion.value) match {
         case Some((2, 11)) | Some((2, 12)) => "org.typelevel"
@@ -82,7 +73,7 @@ object SbtSlamData extends AutoPlugin {
         "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
         "bintray/non" at "http://dl.bintray.com/non/maven"),
       addCompilerPlugin("org.spire-math"  %% "kind-projector" % "0.9.3"),
-      addCompilerPlugin("org.scalamacros" %  "paradise"       % "2.1.0" cross CrossVersion.fullMapped(stripTLSVersion)),
+      addCompilerPlugin("org.scalamacros" %  "paradise"       % "2.1.0" cross CrossVersion.patch),
 
       scalacOptions := (CrossVersion.partialVersion(scalaVersion.value) match {
         case Some((2, 12)) => scalacOptions_2_10 ++ scalacOptions_2_11 ++ scalacOptions_2_12
