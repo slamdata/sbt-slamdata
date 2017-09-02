@@ -8,8 +8,7 @@ import java.nio.file.Files
 import scala.collection.JavaConverters._
 
 import com.typesafe.sbt.SbtPgp.autoImportImpl.PgpKeys
-import de.heikoseeberger.sbtheader.HeaderKey.{createHeaders, headers}
-import de.heikoseeberger.sbtheader.license.Apache2_0
+import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.{headerCreate, headerLicense, HeaderLicense}
 import sbtrelease.ReleasePlugin.autoImport.{
   releaseCrossBuild, releasePublishArtifactsAction}
 import wartremover.{wartremoverWarnings, Wart, Warts}
@@ -51,18 +50,18 @@ object SbtSlamData extends AutoPlugin {
       "-Yinduction-heuristics",
       "-Ykind-polymorphism")
 
+    val headerLicenseSettings = Seq(
+      headerLicense := Some(HeaderLicense.ALv2("2014–2017", "SlamData Inc.")),
+      licenses += (("Apache 2", url("http://www.apache.org/licenses/LICENSE-2.0"))),
+      checkHeaders := {
+        if ((headerCreate in Compile).value.nonEmpty) sys.error("headers not all present")
+      })
+
     lazy val commonBuildSettings = Seq(
       scalaOrganization := (CrossVersion.partialVersion(scalaVersion.value) match {
         case Some((2, 11)) | Some((2, 12)) => "org.typelevel"
         case _                             => "org.scala-lang"
       }),
-      headers := Map(
-        ("scala", Apache2_0("2014–2017", "SlamData Inc.")),
-        ("java",  Apache2_0("2014–2017", "SlamData Inc."))),
-      licenses += (("Apache 2", url("http://www.apache.org/licenses/LICENSE-2.0"))),
-      checkHeaders := {
-        if ((createHeaders in Compile).value.nonEmpty) sys.error("headers not all present")
-      },
       outputStrategy := Some(StdoutOutput),
       autoCompilerPlugins := true,
       autoAPIMappings := true,
@@ -93,7 +92,8 @@ object SbtSlamData extends AutoPlugin {
         (CrossVersion.partialVersion(scalaVersion.value) match {
           case Some((2, 11)) | Some((2, 12)) => Nil
           case _                             => Seq(Wart.Overloading) // Falsely triggers on 2.10
-        }))
+        })
+    ) ++ headerLicenseSettings
   }
 
   lazy val transferPublishAndTagResources = {
