@@ -1,8 +1,7 @@
-// Holding at 1.0.0 until sbt/sbt-pgp#97 is addressed
-val sbtPgpVersion      = "1.0.0"
-val sbtReleaseVersion  = "1.0.4"
-val sbtSonatypeVersion = "1.1"
-val sbtTravisCiVersion = "1.0.0"
+val sbtPgpVersion      = "1.1.0"
+val sbtReleaseVersion  = "1.0.6"
+val sbtSonatypeVersion = "2.0"
+val sbtTravisCiVersion = "1.1.1"
 
 lazy val root = project.in(file("."))
   .enablePlugins(BuildInfoPlugin)
