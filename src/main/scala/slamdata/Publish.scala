@@ -5,7 +5,6 @@ import sbt._, Keys._
 import com.typesafe.sbt.SbtPgp.autoImportImpl.PgpKeys
 import sbtrelease.ReleasePlugin.autoImport.{
   releaseCrossBuild, releasePublishArtifactsAction}
-import xerial.sbt.Sonatype.SonatypeKeys.sonatypeStagingRepositoryProfile
 
 class Publish {
   lazy val checkHeaders = taskKey[Unit]("Fail the build if createHeaders is not up-to-date")
@@ -17,11 +16,7 @@ class Publish {
       if (isSnapshot.value)
         Some("snapshots" at nexus + "content/repositories/snapshots")
       else
-        sonatypeStagingRepositoryProfile.?.value map { stagingRepoProfile =>
-          "releases" at nexus +
-          "service/local/staging/deployByRepositoryId/" +
-          stagingRepoProfile.repositoryId
-        }
+        Some("releases"  at nexus + "service/local/staging/deploy/maven2")
     },
     publishMavenStyle := true,
     publishArtifact in Test := false,
