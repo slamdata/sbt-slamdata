@@ -51,7 +51,7 @@ object SbtSlamData extends AutoPlugin {
       "-Ykind-polymorphism")
 
     val headerLicenseSettings = Seq(
-      headerLicense := Some(HeaderLicense.ALv2("2014–2017", "SlamData Inc.")),
+      headerLicense := Some(HeaderLicense.ALv2("2014–2018", "SlamData Inc.")),
       licenses += (("Apache 2", url("http://www.apache.org/licenses/LICENSE-2.0"))),
       checkHeaders := {
         if ((headerCreate in Compile).value.nonEmpty) sys.error("headers not all present")
