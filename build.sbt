@@ -1,7 +1,7 @@
 import sbtslamdata.BuildInfo
 import slamdata.Publish
 
-lazy val root = Project("root", file("."))
+lazy val root = (project in file("."))
   .settings(
     name         := "sbt-slamdata",
     organization := "com.slamdata",
@@ -16,7 +16,7 @@ lazy val root = Project("root", file("."))
   .settings(
     addSbtPlugin("com.jsuereth"      % "sbt-pgp"         % BuildInfo.sbtPgpVersion),
     addSbtPlugin("com.github.gseitz" % "sbt-release"     % BuildInfo.sbtReleaseVersion),
-    addSbtPlugin("org.xerial.sbt"    % "sbt-sonatype"    % BuildInfo.sbtSonatypeVersion),
+    addSbtPlugin("org.foundweekends" % "sbt-bintray"     % BuildInfo.sbtBintrayVersion),
     addSbtPlugin("com.dwijnand"      % "sbt-travisci"    % BuildInfo.sbtTravisCiVersion),
     addSbtPlugin("de.heikoseeberger" % "sbt-header"      % "3.0.2"),
     addSbtPlugin("org.wartremover"   % "sbt-wartremover" % "2.2.1"))

@@ -7,10 +7,7 @@ import java.nio.file.attribute.PosixFilePermission, PosixFilePermission.OWNER_EX
 import java.nio.file.Files
 import scala.collection.JavaConverters._
 
-import com.typesafe.sbt.SbtPgp.autoImportImpl.PgpKeys
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.{headerCreate, headerLicense, HeaderLicense}
-import sbtrelease.ReleasePlugin.autoImport.{
-  releaseCrossBuild, releasePublishArtifactsAction}
 import wartremover.{wartremoverWarnings, Wart, Warts}
 
 // Inspired by sbt-catalysts
@@ -117,10 +114,16 @@ object SbtSlamData extends AutoPlugin {
           (Files.getPosixFilePermissions(dst.toPath).asScala ++ permissions).asJava)
       }
 
-      transfer("publishAndTag",       baseDir / "scripts" / "publishAndTag", Set(OWNER_EXECUTE))
-      transfer("credentials.sbt.enc", baseDir / "credentials.sbt.enc")
-      transfer("pubring.pgp.enc",     baseDir / "pubring.pgp.enc")
-      transfer("secring.pgp.enc",     baseDir / "secring.pgp.enc")
+      def transferAllToBaseDir(srcs: String*) = srcs.foreach(src => transfer(src, baseDir / src))
+
+      transfer("publishAndTag", baseDir / "scripts" / "publishAndTag", Set(OWNER_EXECUTE))
+      transferAllToBaseDir(
+        "pubring.pgp.enc",
+        "secring.pgp.enc",
+        "pgppassphrase.sbt.enc",
+        "credentials.bintray.enc",
+        "credentials.sonatype.enc"
+      )
     }
   }
 }
