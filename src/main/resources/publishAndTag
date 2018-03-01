@@ -14,6 +14,14 @@ if [[
     ("$TRAVIS_BRANCH" == "master" || "$TRAVIS_BRANCH" == backport/*) &&
     "$TRAVIS_REPO_SLUG"    == "$REPO_SLUG"
   ]] ; then
+
+  set +u
+  if [ -z "$SBT" ]; then
+    echo "\$SBT variable is unset or empty. Please set it to be the path to a local copy of sbt before running this script."
+    exit 1
+  fi
+  set -u
+
   openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in secring.pgp.enc          -out project/local.secring.pgp  -d
   openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in pubring.pgp.enc          -out project/local.pubring.pgp  -d
   openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in pgppassphrase.sbt.enc    -out local.pgppassphrase.sbt    -d
@@ -22,7 +30,7 @@ if [[
 
   # Only publish on oraclejdk8
   if [[ $JAVA_HOME == *"java-8-oracle" ]]; then
-    sbt ++"$TRAVIS_SCALA_VERSION" publishSigned synchronizeWithMavenCentral
+    "$SBT" ++"$TRAVIS_SCALA_VERSION" publishSigned synchronizeWithMavenCentral
   else
     echo "Travis not running against oraclejdk8, so skipping publish"
   fi
