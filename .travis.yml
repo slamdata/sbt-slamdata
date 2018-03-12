@@ -4,9 +4,11 @@ scala:
 - 2.12.3
 jdk:
 - oraclejdk8
+env:
+- SBT="./sbt"
 sudo: false
 script:
-- sbt compile
+- $SBT compile
 - scripts/publishAndTag 'slamdata/sbt-slamdata'
 branches:
   except:

@@ -1,7 +1,6 @@
 package slamdata
 
 import sbt._, Keys._
-import bintray.Bintray
 import bintray.BintrayKeys._
 import com.typesafe.sbt.SbtPgp.autoImportImpl.PgpKeys
 import sbtrelease.ReleasePlugin.autoImport.{ releaseCrossBuild, releasePublishArtifactsAction }
