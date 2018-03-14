@@ -12,6 +12,7 @@ class Publish {
     "Determines if project should be released publicly both to bintray and maven or only to a private bintray repository")
 
   lazy val synchronizeWithMavenCentral = taskKey[Unit]("Synchronize artifacts published on bintray with maven central")
+  lazy val closeMavenCentralStaging = taskKey[Unit]("Close the sonatype staging repository")
 
   lazy val commonPublishSettings = Seq(
     licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
@@ -19,11 +20,23 @@ class Publish {
     bintrayRepository := { if (publishAsOSSProject.value) "maven-public" else "maven-private" },
     synchronizeWithMavenCentral := Def.taskDyn {
       if (publishAsOSSProject.value && !sbtPlugin.value) {
+        Def.task(bintraySyncSonatypeStaging.value)
+      } else {
+        Def.task(())
+      }
+    }.value,
+    // this is a little weird, because we overwrite it every time. whatever
+    closeMavenCentralStaging in Global := Def.taskDyn {
+      if (publishAsOSSProject.value && !sbtPlugin.value) {
         Def.task(bintraySyncMavenCentral.value)
       } else {
         Def.task(())
       }
     }.value,
+    bintraySyncMavenCentralRetries := {
+      import scala.concurrent.duration._
+      Seq(5.seconds, 1.minute, 5.minutes)
+    },
     publishMavenStyle := true,
     bintrayOrganization := Some("slamdata-inc"),
     publishArtifact in Test := false,

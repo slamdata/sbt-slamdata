@@ -1,7 +1,9 @@
 val sbtPgpVersion      = "1.1.0"
 val sbtReleaseVersion  = "1.0.6"
 val sbtTravisCiVersion = "1.1.1"
-val sbtBintrayVersion = "0.5.3"
+val sbtBintrayVersion = "0.5.3+4-b634b339"
+
+resolvers in ThisBuild += Resolver.bintrayIvyRepo("djspiewak", "ivy")
 
 lazy val root = project.in(file("."))
   .enablePlugins(BuildInfoPlugin)
