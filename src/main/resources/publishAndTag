@@ -31,6 +31,7 @@ if [[
   # Only publish on oraclejdk8
   if [[ $JAVA_HOME == *"java-8-oracle" ]]; then
     "$SBT" ++"$TRAVIS_SCALA_VERSION" publishSigned synchronizeWithMavenCentral
+    "$SBT" ++"$TRAVIS_SCALA_VERSION" closeMavenCentralStaging
   else
     echo "Travis not running against oraclejdk8, so skipping publish"
   fi
