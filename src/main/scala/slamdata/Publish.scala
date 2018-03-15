@@ -4,6 +4,7 @@ import sbt._, Keys._
 import bintray.BintrayKeys._
 import com.typesafe.sbt.SbtPgp.autoImportImpl.PgpKeys
 import sbtrelease.ReleasePlugin.autoImport.{ releaseCrossBuild, releasePublishArtifactsAction }
+import scala.concurrent.duration._
 
 class Publish {
   lazy val checkHeaders = taskKey[Unit]("Fail the build if createHeaders is not up-to-date")
@@ -11,35 +12,19 @@ class Publish {
   lazy val publishAsOSSProject = settingKey[Boolean](
     "Determines if project should be released publicly both to bintray and maven or only to a private bintray repository")
 
-  lazy val synchronizeWithMavenCentral = taskKey[Unit]("Synchronize artifacts published on bintray with maven central")
-  lazy val closeMavenCentralStaging = taskKey[Unit]("Close the sonatype staging repository")
-
-  lazy val performSonatypeSync = settingKey[Boolean]("If true, then project will be sync'd from maven-public to Maven Central, but only if publishAsOSSProject is also true")
+  lazy val synchronizeWithSonatypeStaging = taskKey[Unit]("Synchronize artifacts published on bintray sonatype staging repository")
+  lazy val releaseToMavenCentral = taskKey[Unit]("Close the sonatype staging repository")
+  lazy val performMavenCentralSync = settingKey[Boolean]("If true, then project will be sync'd from maven-public to Maven Central")
 
   lazy val commonPublishSettings = Seq(
     licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
     publishAsOSSProject := true,
-    performSonatypeSync := true,
+    performMavenCentralSync := publishAsOSSProject.value && !sbtPlugin.value,
     bintrayRepository := { if (publishAsOSSProject.value) "maven-public" else "maven-private" },
-    synchronizeWithMavenCentral := Def.taskDyn {
-      if (publishAsOSSProject.value && performSonatypeSync.value && !sbtPlugin.value) {
-        Def.task(bintraySyncSonatypeStaging.value)
-      } else {
-        Def.task(())
-      }
-    }.value,
-    // this is a little weird, because we overwrite it every time. whatever
-    closeMavenCentralStaging in Global := Def.taskDyn {
-      if (publishAsOSSProject.value && performSonatypeSync.value && !sbtPlugin.value) {
-        Def.task(bintraySyncMavenCentral.value)
-      } else {
-        Def.task(())
-      }
-    }.value,
-    bintraySyncMavenCentralRetries := {
-      import scala.concurrent.duration._
-      Seq(5.seconds, 1.minute, 5.minutes)
-    },
+    bintrayReleaseOnPublish := false,
+    synchronizeWithSonatypeStaging := mavenCentralRelatedTask(bintraySyncSonatypeStaging).value,
+    releaseToMavenCentral := mavenCentralRelatedTask(bintraySyncMavenCentral).value,
+    bintraySyncMavenCentralRetries := Seq(5.seconds, 1.minute, 5.minutes),
     publishMavenStyle := true,
     bintrayOrganization := Some("slamdata-inc"),
     publishArtifact in Test := false,
@@ -66,6 +51,10 @@ class Publish {
     publishLocal := {},
     publishArtifact := false
   )
+
+  private def mavenCentralRelatedTask(task: TaskKey[Unit]): Def.Initialize[Task[Unit]] = Def.taskDyn {
+    if (performMavenCentralSync.value) Def.task(task.value) else Def.task(())
+  }
 
 }
 
