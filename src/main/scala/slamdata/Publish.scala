@@ -14,12 +14,15 @@ class Publish {
   lazy val synchronizeWithMavenCentral = taskKey[Unit]("Synchronize artifacts published on bintray with maven central")
   lazy val closeMavenCentralStaging = taskKey[Unit]("Close the sonatype staging repository")
 
+  lazy val performSonatypeSync = settingKey[Boolean]("If true, then project will be sync'd from maven-public to Maven Central, but only if publishAsOSSProject is also true")
+
   lazy val commonPublishSettings = Seq(
     licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
     publishAsOSSProject := true,
+    performSonatypeSync := true,
     bintrayRepository := { if (publishAsOSSProject.value) "maven-public" else "maven-private" },
     synchronizeWithMavenCentral := Def.taskDyn {
-      if (publishAsOSSProject.value && !sbtPlugin.value) {
+      if (publishAsOSSProject.value && performSonatypeSync.value && !sbtPlugin.value) {
         Def.task(bintraySyncSonatypeStaging.value)
       } else {
         Def.task(())
@@ -27,7 +30,7 @@ class Publish {
     }.value,
     // this is a little weird, because we overwrite it every time. whatever
     closeMavenCentralStaging in Global := Def.taskDyn {
-      if (publishAsOSSProject.value && !sbtPlugin.value) {
+      if (publishAsOSSProject.value && performSonatypeSync.value && !sbtPlugin.value) {
         Def.task(bintraySyncMavenCentral.value)
       } else {
         Def.task(())
