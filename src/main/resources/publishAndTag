@@ -3,7 +3,14 @@
 set -euo pipefail # STRICT MODE
 IFS=$'\n\t'        # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 
-VERSION=$(sed 's/.*"\(.*\)"/\1/' version.sbt)
+if [ -f version.sbt ]; then
+    VERSION=$(sed 's/.*"\(.*\)"/\1/' version.sbt)
+elif [ -f package.json ]; then
+    VERSION=$(jq -r .version package.json | sed 's/v//g')
+else
+    echo "Unable to determine project version required to tag the release on github. Expected to find one of those files: version.sbt, package.json"
+    exit 1
+fi
 
 REPO_SLUG="$1"
 PROJECT=$(sed 's/.*\///' <<< "$REPO_SLUG")
