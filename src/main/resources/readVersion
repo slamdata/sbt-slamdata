@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -euo pipefail # STRICT MODE
+IFS=$'\n\t'       # http://redsymbol.net/articles/unofficial-bash-strict-mode/
+
+if [ -f version.sbt ]; then
+    echo $(sed 's/.*"\(.*\)"/\1/' version.sbt)
+elif [ -f package.json ]; then
+    echo $(jq -r .version package.json | sed 's/v//g')
+else
+    echo "Unable to determine project version. Expected to find one of those files: version.sbt, package.json"
+    exit 1
+fi

@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+set -euo pipefail # STRICT MODE
+IFS=$'\n\t'       # http://redsymbol.net/articles/unofficial-bash-strict-mode/
+
+TARGET_OWNER=$1
+TARGET_REPO=$2
+BUMP_VERSION_FUNC=$3
+
+PROJECT=$(sed 's/.*\///' <<< "$TRAVIS_REPO_SLUG")
+VERSION=$(scripts/readVersion)
+
+
+BRANCH_NAME=$PROJECT-version-bump-$VERSION
+BUMP_MESSAGE="Bump $PROJECT version to $VERSION"
+
+CLONE_DIR=$(mktemp -d "/tmp/slamdata-bump.XXXXXXXX")
+git clone https://$GITHUB_ACCESS_TOKEN@github.com/$TARGET_OWNER/$TARGET_REPO.git $CLONE_DIR
+cd $CLONE_DIR
+git checkout -b $BRANCH_NAME
+$BUMP_VERSION_FUNC $VERSION
+
+git config user.email "builds@travis-ci.com"
+git config user.name "Travis CI"
+
+git commit -am "$BUMP_MESSAGE"
+git push origin $BRANCH_NAME
+
+pull_request_post_data() {
+  cat << EOF
+{
+  "title": "$BUMP_MESSAGE",
+  "head": "$BRANCH_NAME",
+  "base": "master",
+  "body": "This PR was generated automatically."
+}
+EOF
+}
+
+curl -H "Content-Type: application/json" \
+     -H "Authorization: token $GITHUB_ACCESS_TOKEN" \
+     --data "$(pull_request_post_data)" \
+     "https://api.github.com/repos/$TARGET_OWNER/$TARGET_REPO/pulls"
+
+cd -
+rm -rf $CLONE_DIR
