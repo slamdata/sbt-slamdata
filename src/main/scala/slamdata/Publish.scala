@@ -49,7 +49,8 @@ class Publish {
   lazy val noPublishSettings = Seq(
     publish := {},
     publishLocal := {},
-    publishArtifact := false
+    publishArtifact := false,
+    skip in publish := true
   )
 
   private def mavenCentralRelatedTask(task: TaskKey[Unit]): Def.Initialize[Task[Unit]] = Def.taskDyn {
