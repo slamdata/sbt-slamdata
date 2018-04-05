@@ -49,6 +49,7 @@ class Publish {
   lazy val noPublishSettings = Seq(
     publish := {},
     publishLocal := {},
+    bintrayRelease := {},
     publishArtifact := false,
     skip in publish := true
   )
