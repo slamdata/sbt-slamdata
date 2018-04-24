@@ -51,7 +51,8 @@ class Publish {
     publishLocal := {},
     bintrayRelease := {},
     publishArtifact := false,
-    skip in publish := true
+    skip in publish := true,
+    bintrayEnsureBintrayPackageExists := {}
   )
 
   private def mavenCentralRelatedTask(task: TaskKey[Unit]): Def.Initialize[Task[Unit]] = Def.taskDyn {
