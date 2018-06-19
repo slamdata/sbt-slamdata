@@ -123,4 +123,8 @@ object SbtSlamData extends AutoPlugin {
       )
     }
   }
+
+  import autoImport._
+
+  override def projectSettings = commonBuildSettings ++ commonPublishSettings
 }
