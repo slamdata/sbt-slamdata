@@ -62,12 +62,16 @@ object SbtSlamData extends AutoPlugin {
       outputStrategy := Some(StdoutOutput),
       autoCompilerPlugins := true,
       autoAPIMappings := true,
+
       resolvers ++= Seq(
         Resolver.sonatypeRepo("releases"),
         Resolver.sonatypeRepo("snapshots"),
         "JBoss repository" at "https://repository.jboss.org/nexus/content/repositories/",
-        "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
-        "bintray/non" at "http://dl.bintray.com/non/maven"),
+        Resolver.bintrayRepo("scalaz", "releases"),
+        Resolver.bintrayRepo("non", "maven"),
+        Resolver.bintrayRepo("slamdata-inc", "maven-public"),
+        Resolver.bintrayRepo("slamdata-inc", "maven-private")),
+
       addCompilerPlugin("org.spire-math"  %% "kind-projector" % "0.9.4"),
       addCompilerPlugin("org.scalamacros" %  "paradise"       % "2.1.0" cross CrossVersion.patch),
 
