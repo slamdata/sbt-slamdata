@@ -63,7 +63,7 @@ object SbtSlamData extends AutoPlugin {
       "-Ypartial-unification",
       "-Ywarn-unused-import")
 
-    val scalacOptions_2_12 = Seq("-Xstrict-patmat-analysis", "-target:jvm-1.8")
+    val scalacOptions_2_12 = Seq("-target:jvm-1.8")
 
     val headerLicenseSettings = Seq(
       headerLicense := Some(HeaderLicense.ALv2("2014–2018", "SlamData Inc.")),
