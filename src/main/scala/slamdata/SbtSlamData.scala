@@ -20,6 +20,9 @@ object SbtSlamData extends AutoPlugin {
   object autoImport extends Base
 
   class Base extends Publish {
+    lazy val transferPublishAndTagResources = taskKey[Unit](
+      "Transfers publishAndTag script and associated resources")
+
     val scalacOptions_2_10 = Seq(
       "-deprecation",
       "-encoding", "UTF-8",
@@ -99,10 +102,9 @@ object SbtSlamData extends AutoPlugin {
     ) ++ headerLicenseSettings
   }
 
-  lazy val transferPublishAndTagResources = {
-    lazy val transferPublishAndTagResources = taskKey[Unit](
-      "Transfers publishAndTag script and associated resources")
+  import autoImport._
 
+  override def buildSettings = Seq(
     transferPublishAndTagResources := {
       val log = streams.value.log
 
@@ -131,10 +133,7 @@ object SbtSlamData extends AutoPlugin {
         "credentials.bintray.enc",
         "credentials.sonatype.enc"
       )
-    }
-  }
-
-  import autoImport._
+    })
 
   override def projectSettings = commonBuildSettings ++ commonPublishSettings
 }
