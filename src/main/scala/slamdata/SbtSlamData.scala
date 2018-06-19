@@ -8,6 +8,7 @@ import java.nio.file.Files
 import scala.collection.JavaConverters._
 
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.{headerCreate, headerLicense, HeaderLicense}
+import sbttravisci.TravisCiPlugin.autoImport._
 import wartremover.{wartremoverWarnings, Wart, Warts}
 
 // Inspired by sbt-catalysts
@@ -27,7 +28,6 @@ object SbtSlamData extends AutoPlugin {
       "-language:higherKinds",
       "-language:implicitConversions",
       "-unchecked",
-      "-Xfatal-warnings",
       "-Xfuture",
       "-Xlint",
       "-Yno-adapted-args",
@@ -72,10 +72,20 @@ object SbtSlamData extends AutoPlugin {
         case Some((2, 11)) => scalacOptions_2_10 ++ scalacOptions_2_11
         case _             => scalacOptions_2_10
       }),
+
+      scalacOptions ++= {
+        if (isTravisBuild.value)
+          Seq("-Xfatal-warnings")
+        else
+          Seq()
+      },
+
       scalacOptions in (Test, console) --= Seq(
         "-Yno-imports",
         "-Ywarn-unused-import"),
+
       scalacOptions in (Compile, doc) -= "-Xfatal-warnings",
+
       wartremoverWarnings in (Compile, compile) ++= Warts.allBut(
         Wart.Any,                   // - see puffnfresh/wartremover#263
         Wart.ExplicitImplicitTypes, // - see puffnfresh/wartremover#226
