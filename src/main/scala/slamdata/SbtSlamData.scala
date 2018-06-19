@@ -7,16 +7,23 @@ import java.nio.file.attribute.PosixFilePermission, PosixFilePermission.OWNER_EX
 import java.nio.file.Files
 import scala.collection.JavaConverters._
 
-import bintray.BintrayKeys._
+import bintray.{BintrayKeys, BintrayPlugin}, BintrayKeys._
+import com.typesafe.sbt.SbtPgp
 import com.typesafe.sbt.pgp.PgpKeys._
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.{headerCreate, headerLicense, HeaderLicense}
 import sbttravisci.TravisCiPlugin.autoImport._
+import sbttravisci.TravisCiPlugin, TravisCiPlugin.autoImport._
 import wartremover.{wartremoverWarnings, Wart, Warts}
 
 // Inspired by sbt-catalysts
 
 object SbtSlamData extends AutoPlugin {
-  override def requires = plugins.JvmPlugin
+  override def requires =
+    plugins.JvmPlugin &&
+    BintrayPlugin &&
+    TravisCiPlugin &&
+    SbtPgp
+
   override def trigger = allRequirements
 
   object autoImport extends Base
