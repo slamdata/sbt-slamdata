@@ -1,8 +1,6 @@
 import sbtslamdata.BuildInfo
 import slamdata.Publish
 
-resolvers in ThisBuild += Resolver.bintrayIvyRepo("djspiewak", "ivy")
-
 lazy val root = (project in file("."))
   .settings(
     name         := "sbt-slamdata",

@@ -7,7 +7,10 @@ import java.nio.file.attribute.PosixFilePermission, PosixFilePermission.OWNER_EX
 import java.nio.file.Files
 import scala.collection.JavaConverters._
 
+import bintray.BintrayKeys._
+import com.typesafe.sbt.pgp.PgpKeys._
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.{headerCreate, headerLicense, HeaderLicense}
+import sbttravisci.TravisCiPlugin.autoImport._
 import wartremover.{wartremoverWarnings, Wart, Warts}
 
 // Inspired by sbt-catalysts
@@ -19,6 +22,19 @@ object SbtSlamData extends AutoPlugin {
   object autoImport extends Base
 
   class Base extends Publish {
+    lazy val transferPublishAndTagResources = taskKey[Unit](
+      "Transfers publishAndTag script and associated resources")
+
+    val BothScopes = "test->test;compile->compile"
+
+    // Exclusive execution settings
+    lazy val ExclusiveTests = config("exclusive") extend Test
+
+    val ExclusiveTest = Tags.Tag("exclusive-test")
+
+    def exclusiveTasks(tasks: Scoped*) =
+      tasks.flatMap(inTask(_)(tags := Seq((ExclusiveTest, 1))))
+
     val scalacOptions_2_10 = Seq(
       "-deprecation",
       "-encoding", "UTF-8",
@@ -27,7 +43,6 @@ object SbtSlamData extends AutoPlugin {
       "-language:higherKinds",
       "-language:implicitConversions",
       "-unchecked",
-      "-Xfatal-warnings",
       "-Xfuture",
       "-Xlint",
       "-Yno-adapted-args",
@@ -38,14 +53,10 @@ object SbtSlamData extends AutoPlugin {
 
     val scalacOptions_2_11 = Seq(
       "-Ydelambdafy:method",
-      "-Yliteral-types",
       "-Ypartial-unification",
       "-Ywarn-unused-import")
 
-    val scalacOptions_2_12 = Seq(
-      "-Xstrict-patmat-analysis",
-      "-Yinduction-heuristics",
-      "-Ykind-polymorphism")
+    val scalacOptions_2_12 = Seq("-Xstrict-patmat-analysis", "-target:jvm-1.8")
 
     val headerLicenseSettings = Seq(
       headerLicense := Some(HeaderLicense.ALv2("2014–2018", "SlamData Inc.")),
@@ -55,19 +66,10 @@ object SbtSlamData extends AutoPlugin {
       })
 
     lazy val commonBuildSettings = Seq(
-      scalaOrganization := (CrossVersion.partialVersion(scalaVersion.value) match {
-        case Some((2, 11)) | Some((2, 12)) => "org.typelevel"
-        case _                             => "org.scala-lang"
-      }),
       outputStrategy := Some(StdoutOutput),
       autoCompilerPlugins := true,
       autoAPIMappings := true,
-      resolvers ++= Seq(
-        Resolver.sonatypeRepo("releases"),
-        Resolver.sonatypeRepo("snapshots"),
-        "JBoss repository" at "https://repository.jboss.org/nexus/content/repositories/",
-        "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
-        "bintray/non" at "http://dl.bintray.com/non/maven"),
+
       addCompilerPlugin("org.spire-math"  %% "kind-projector" % "0.9.4"),
       addCompilerPlugin("org.scalamacros" %  "paradise"       % "2.1.0" cross CrossVersion.patch),
 
@@ -76,10 +78,20 @@ object SbtSlamData extends AutoPlugin {
         case Some((2, 11)) => scalacOptions_2_10 ++ scalacOptions_2_11
         case _             => scalacOptions_2_10
       }),
+
+      scalacOptions ++= {
+        if (isTravisBuild.value)
+          Seq("-Xfatal-warnings")
+        else
+          Seq()
+      },
+
       scalacOptions in (Test, console) --= Seq(
         "-Yno-imports",
         "-Ywarn-unused-import"),
+
       scalacOptions in (Compile, doc) -= "-Xfatal-warnings",
+
       wartremoverWarnings in (Compile, compile) ++= Warts.allBut(
         Wart.Any,                   // - see puffnfresh/wartremover#263
         Wart.ExplicitImplicitTypes, // - see puffnfresh/wartremover#226
@@ -93,9 +105,60 @@ object SbtSlamData extends AutoPlugin {
     ) ++ headerLicenseSettings
   }
 
-  lazy val transferPublishAndTagResources = {
-    lazy val transferPublishAndTagResources = taskKey[Unit](
-      "Transfers publishAndTag script and associated resources")
+  import autoImport._
+
+  override def buildSettings = Seq(
+    organization := "com.slamdata",
+
+    organizationName := "SlamData Inc.",
+    organizationHomepage := Some(url("http://slamdata.com")),
+
+    resolvers := Seq(
+      Resolver.sonatypeRepo("releases"),
+      Resolver.sonatypeRepo("snapshots"),
+      "JBoss repository" at "https://repository.jboss.org/nexus/content/repositories/",
+      Resolver.bintrayRepo("scalaz", "releases"),
+      Resolver.bintrayRepo("non", "maven"),
+      Resolver.bintrayRepo("slamdata-inc", "maven-public"),
+      Resolver.bintrayRepo("slamdata-inc", "maven-private")),
+
+    concurrentRestrictions := {
+      val maxTasks = 2
+      if (isTravisBuild.value)
+        // Recreate the default rules with the task limit hard-coded:
+        Seq(Tags.limitAll(maxTasks), Tags.limit(Tags.ForkedTestGroup, 1))
+      else
+        concurrentRestrictions.value
+    },
+
+    // Tasks tagged with `ExclusiveTest` should be run exclusively.
+    concurrentRestrictions += Tags.exclusive(ExclusiveTest),
+
+    // copied from quasar
+    version := {
+      import scala.sys.process._
+
+      val currentVersion = version.value
+      if (!isTravisBuild.value)
+        currentVersion + "-" + "git rev-parse HEAD".!!.substring(0, 7)
+      else
+        currentVersion
+    },
+
+    useGpg in Global := {
+      val oldValue = (useGpg in Global).value
+      !isTravisBuild.value || oldValue
+    },
+
+    pgpSecretRing in Global := pgpPublicRing.value,   // workaround for sbt/sbt-pgp#126
+
+    bintrayCredentialsFile := {
+      val oldValue = bintrayCredentialsFile.value
+      if (!isTravisBuild.value)
+        Path.userHome / ".bintray" / ".credentials"
+      else
+        oldValue
+    },
 
     transferPublishAndTagResources := {
       val log = streams.value.log
@@ -125,6 +188,7 @@ object SbtSlamData extends AutoPlugin {
         "credentials.bintray.enc",
         "credentials.sonatype.enc"
       )
-    }
-  }
+    })
+
+  override def projectSettings = commonBuildSettings ++ commonPublishSettings
 }
