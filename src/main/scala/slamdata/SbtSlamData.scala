@@ -38,14 +38,10 @@ object SbtSlamData extends AutoPlugin {
 
     val scalacOptions_2_11 = Seq(
       "-Ydelambdafy:method",
-      "-Yliteral-types",
       "-Ypartial-unification",
       "-Ywarn-unused-import")
 
-    val scalacOptions_2_12 = Seq(
-      "-Xstrict-patmat-analysis",
-      "-Yinduction-heuristics",
-      "-Ykind-polymorphism")
+    val scalacOptions_2_12 = Seq("-Xstrict-patmat-analysis")
 
     val headerLicenseSettings = Seq(
       headerLicense := Some(HeaderLicense.ALv2("2014–2018", "SlamData Inc.")),
@@ -55,10 +51,6 @@ object SbtSlamData extends AutoPlugin {
       })
 
     lazy val commonBuildSettings = Seq(
-      scalaOrganization := (CrossVersion.partialVersion(scalaVersion.value) match {
-        case Some((2, 11)) | Some((2, 12)) => "org.typelevel"
-        case _                             => "org.scala-lang"
-      }),
       outputStrategy := Some(StdoutOutput),
       autoCompilerPlugins := true,
       autoAPIMappings := true,
