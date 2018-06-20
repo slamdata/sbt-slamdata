@@ -47,6 +47,8 @@ object SbtSlamData extends AutoPlugin {
 
     def scalacOptions_2_10(strict: Boolean) = {
       val global = Seq(
+        "-encoding", "UTF-8",
+        "-deprecation",
         "-language:existentials",
         "-language:higherKinds",
         "-language:implicitConversions",
@@ -55,8 +57,6 @@ object SbtSlamData extends AutoPlugin {
 
       if (strict) {
         global ++ Seq(
-          "-deprecation",
-          "-encoding", "UTF-8",
           "-unchecked",
           "-Xfuture",
           "-Yno-adapted-args",
@@ -111,7 +111,7 @@ object SbtSlamData extends AutoPlugin {
       },
 
       scalacOptions ++= {
-        if (isTravisBuild.value)
+        if (isTravisBuild.value && scalacStrictMode.value)
           Seq("-Xfatal-warnings")
         else
           Seq()
