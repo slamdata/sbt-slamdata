@@ -129,7 +129,7 @@ object SbtSlamData extends AutoPlugin {
             Wart.Any,                   // - see puffnfresh/wartremover#263
             Wart.ExplicitImplicitTypes, // - see puffnfresh/wartremover#226
             Wart.ImplicitConversion,    // - see mpilquist/simulacrum#35
-            Wart.Nothing),              // - see puffnfresh/wartremover#263
+            Wart.Nothing)               // - see puffnfresh/wartremover#263
         } else {
           Seq.empty
         }
