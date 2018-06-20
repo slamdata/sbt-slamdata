@@ -32,6 +32,9 @@ object SbtSlamData extends AutoPlugin {
     lazy val transferPublishAndTagResources = taskKey[Unit](
       "Transfers publishAndTag script and associated resources")
 
+    lazy val scalacStrictMode = settingKey[Boolean](
+      "Include stricter warnings and WartRemover settings")
+
     val BothScopes = "test->test;compile->compile"
 
     // Exclusive execution settings
@@ -42,28 +45,42 @@ object SbtSlamData extends AutoPlugin {
     def exclusiveTasks(tasks: Scoped*) =
       tasks.flatMap(inTask(_)(tags := Seq((ExclusiveTest, 1))))
 
-    val scalacOptions_2_10 = Seq(
-      "-deprecation",
-      "-encoding", "UTF-8",
-      "-feature",
-      "-language:existentials",
-      "-language:higherKinds",
-      "-language:implicitConversions",
-      "-unchecked",
-      "-Xfuture",
-      "-Xlint",
-      "-Yno-adapted-args",
-      "-Yno-imports",
-      "-Ywarn-dead-code",
-      "-Ywarn-numeric-widen",
-      "-Ywarn-value-discard")
+    def scalacOptions_2_10(strict: Boolean) = {
+      val global = Seq(
+        "-language:existentials",
+        "-language:higherKinds",
+        "-language:implicitConversions",
+        "-feature",
+        "-Xlint")
 
-    val scalacOptions_2_11 = Seq(
-      "-Ydelambdafy:method",
-      "-Ypartial-unification",
-      "-Ywarn-unused-import")
+      if (strict) {
+        global ++ Seq(
+          "-deprecation",
+          "-encoding", "UTF-8",
+          "-unchecked",
+          "-Xfuture",
+          "-Yno-adapted-args",
+          "-Yno-imports",
+          "-Ywarn-dead-code",
+          "-Ywarn-numeric-widen",
+          "-Ywarn-value-discard")
+      } else {
+        global
+      }
+    }
 
-    val scalacOptions_2_12 = Seq("-target:jvm-1.8")
+    def scalacOptions_2_11(strict: Boolean) = {
+      val global = Seq(
+        "-Ypartial-unification",
+        "-Ywarn-unused-import")
+
+      if (strict)
+        global :+ "-Ydelambdafy:method"
+      else
+        global
+    }
+
+    def scalacOptions_2_12(strict: Boolean) = Seq("-target:jvm-1.8")
 
     val headerLicenseSettings = Seq(
       headerLicense := Some(HeaderLicense.ALv2("2014–2018", "SlamData Inc.")),
@@ -80,11 +97,18 @@ object SbtSlamData extends AutoPlugin {
       addCompilerPlugin("org.spire-math"  %% "kind-projector" % "0.9.4"),
       addCompilerPlugin("org.scalamacros" %  "paradise"       % "2.1.0" cross CrossVersion.patch),
 
-      scalacOptions := (CrossVersion.partialVersion(scalaVersion.value) match {
-        case Some((2, 12)) => scalacOptions_2_10 ++ scalacOptions_2_11 ++ scalacOptions_2_12
-        case Some((2, 11)) => scalacOptions_2_10 ++ scalacOptions_2_11
-        case _             => scalacOptions_2_10
-      }),
+      // default to true
+      scalacStrictMode := true,
+
+      scalacOptions ++= {
+        val strict = scalacStrictMode.value
+
+        CrossVersion.partialVersion(scalaVersion.value) match {
+          case Some((2, 12)) => scalacOptions_2_10(strict) ++ scalacOptions_2_11(strict) ++ scalacOptions_2_12(strict)
+          case Some((2, 11)) => scalacOptions_2_10(strict) ++ scalacOptions_2_11(strict)
+          case _ => scalacOptions_2_10(strict)
+        }
+      },
 
       scalacOptions ++= {
         if (isTravisBuild.value)
@@ -99,16 +123,28 @@ object SbtSlamData extends AutoPlugin {
 
       scalacOptions in (Compile, doc) -= "-Xfatal-warnings",
 
-      wartremoverWarnings in (Compile, compile) ++= Warts.allBut(
-        Wart.Any,                   // - see puffnfresh/wartremover#263
-        Wart.ExplicitImplicitTypes, // - see puffnfresh/wartremover#226
-        Wart.ImplicitConversion,    // - see mpilquist/simulacrum#35
-        Wart.Nothing),              // - see puffnfresh/wartremover#263
-      wartremoverWarnings in (Compile, compile) --=
-        (CrossVersion.partialVersion(scalaVersion.value) match {
-          case Some((2, 11)) | Some((2, 12)) => Nil
-          case _                             => Seq(Wart.Overloading) // Falsely triggers on 2.10
-        })
+      wartremoverWarnings in (Compile, compile) ++= {
+        if (scalacStrictMode.value) {
+          Warts.allBut(
+            Wart.Any,                   // - see puffnfresh/wartremover#263
+            Wart.ExplicitImplicitTypes, // - see puffnfresh/wartremover#226
+            Wart.ImplicitConversion,    // - see mpilquist/simulacrum#35
+            Wart.Nothing)               // - see puffnfresh/wartremover#263
+        } else {
+          Seq.empty
+        }
+      },
+
+      wartremoverWarnings in (Compile, compile) --= {
+        if (scalacStrictMode.value) {
+          CrossVersion.partialVersion(scalaVersion.value) match {
+            case Some((2, 11)) | Some((2, 12)) => Nil
+            case _                             => Seq(Wart.Overloading) // Falsely triggers on 2.10
+          }
+        } else {
+          Seq.empty
+        }
+      }
     ) ++ headerLicenseSettings
   }
 
