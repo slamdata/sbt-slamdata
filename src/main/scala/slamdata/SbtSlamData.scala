@@ -11,7 +11,6 @@ import bintray.{BintrayKeys, BintrayPlugin}, BintrayKeys._
 import com.typesafe.sbt.SbtPgp
 import com.typesafe.sbt.pgp.PgpKeys._
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.{headerCreate, headerLicense, HeaderLicense}
-import sbttravisci.TravisCiPlugin.autoImport._
 import sbttravisci.TravisCiPlugin, TravisCiPlugin.autoImport._
 import wartremover.{wartremoverWarnings, Wart, Warts}
 
@@ -177,30 +176,9 @@ object SbtSlamData extends AutoPlugin {
     // Tasks tagged with `ExclusiveTest` should be run exclusively.
     concurrentRestrictions += Tags.exclusive(ExclusiveTest),
 
-    // copied from quasar
-    version := {
-      import scala.sys.process._
-
-      val currentVersion = version.value
-      if (!isTravisBuild.value)
-        currentVersion + "-" + "git rev-parse HEAD".!!.substring(0, 7)
-      else
-        currentVersion
-    },
-
     useGpg in Global := {
       val oldValue = (useGpg in Global).value
       !isTravisBuild.value || oldValue
-    },
-
-    pgpSecretRing in Global := pgpPublicRing.value,   // workaround for sbt/sbt-pgp#126
-
-    bintrayCredentialsFile := {
-      val oldValue = bintrayCredentialsFile.value
-      if (!isTravisBuild.value)
-        Path.userHome / ".bintray" / ".credentials"
-      else
-        oldValue
     },
 
     transferPublishAndTagResources := {
@@ -233,5 +211,14 @@ object SbtSlamData extends AutoPlugin {
       )
     })
 
-  override def projectSettings = commonBuildSettings ++ commonPublishSettings
+  override def projectSettings = commonBuildSettings ++ commonPublishSettings ++ Seq(
+    version := {
+      import scala.sys.process._
+
+      val currentVersion = version.value
+      if (!isTravisBuild.value)
+        currentVersion + "-" + "git rev-parse HEAD".!!.substring(0, 7)
+      else
+        currentVersion
+    })
 }
