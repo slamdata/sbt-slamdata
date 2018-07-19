@@ -149,67 +149,69 @@ object SbtSlamData extends AutoPlugin {
 
   import autoImport._
 
-  override def buildSettings = Seq(
-    organization := "com.slamdata",
+  override def buildSettings =
+    addCommandAlias("releaseSnapshot", "; project root; reload; publishSigned; bintrayRelease") ++
+    Seq(
+      organization := "com.slamdata",
 
-    organizationName := "SlamData Inc.",
-    organizationHomepage := Some(url("http://slamdata.com")),
+      organizationName := "SlamData Inc.",
+      organizationHomepage := Some(url("http://slamdata.com")),
 
-    resolvers := Seq(
-      Resolver.sonatypeRepo("releases"),
-      Resolver.sonatypeRepo("snapshots"),
-      "JBoss repository" at "https://repository.jboss.org/nexus/content/repositories/",
-      Resolver.bintrayRepo("scalaz", "releases"),
-      Resolver.bintrayRepo("non", "maven"),
-      Resolver.bintrayRepo("slamdata-inc", "maven-public"),
-      Resolver.bintrayRepo("slamdata-inc", "maven-private")),
+      resolvers := Seq(
+        Resolver.sonatypeRepo("releases"),
+        Resolver.sonatypeRepo("snapshots"),
+        "JBoss repository" at "https://repository.jboss.org/nexus/content/repositories/",
+        Resolver.bintrayRepo("scalaz", "releases"),
+        Resolver.bintrayRepo("non", "maven"),
+        Resolver.bintrayRepo("slamdata-inc", "maven-public"),
+        Resolver.bintrayRepo("slamdata-inc", "maven-private")),
 
-    concurrentRestrictions := {
-      val maxTasks = 2
-      if (isTravisBuild.value)
-        // Recreate the default rules with the task limit hard-coded:
-        Seq(Tags.limitAll(maxTasks), Tags.limit(Tags.ForkedTestGroup, 1))
-      else
-        concurrentRestrictions.value
-    },
+      concurrentRestrictions := {
+        val maxTasks = 2
+        if (isTravisBuild.value)
+          // Recreate the default rules with the task limit hard-coded:
+          Seq(Tags.limitAll(maxTasks), Tags.limit(Tags.ForkedTestGroup, 1))
+        else
+          concurrentRestrictions.value
+      },
 
-    // Tasks tagged with `ExclusiveTest` should be run exclusively.
-    concurrentRestrictions += Tags.exclusive(ExclusiveTest),
+      // Tasks tagged with `ExclusiveTest` should be run exclusively.
+      concurrentRestrictions += Tags.exclusive(ExclusiveTest),
 
-    useGpg in Global := {
-      val oldValue = (useGpg in Global).value
-      !isTravisBuild.value || oldValue
-    },
+      useGpg in Global := {
+        val oldValue = (useGpg in Global).value
+        !isTravisBuild.value || oldValue
+      },
 
-    transferPublishAndTagResources := {
-      val log = streams.value.log
+      transferPublishAndTagResources := {
+        val log = streams.value.log
 
-      val baseDir = (baseDirectory in ThisBuild).value
+        val baseDir = (baseDirectory in ThisBuild).value
 
-      def transfer(src: String, dst: File, permissions: Set[PosixFilePermission] = Set()) = {
-        val srcʹ = getClass.getClassLoader.getResourceAsStream(src)
+        def transfer(src: String, dst: File, permissions: Set[PosixFilePermission] = Set()) = {
+          val srcʹ = getClass.getClassLoader.getResourceAsStream(src)
 
-        log.info(s"transferring $src to $dst")
+          log.info(s"transferring $src to $dst")
 
-        IO.transfer(srcʹ, dst)
+          IO.transfer(srcʹ, dst)
 
-        Files.setPosixFilePermissions(
-          dst.toPath,
-          (Files.getPosixFilePermissions(dst.toPath).asScala ++ permissions).asJava)
-      }
+          Files.setPosixFilePermissions(
+            dst.toPath,
+            (Files.getPosixFilePermissions(dst.toPath).asScala ++ permissions).asJava)
+        }
 
-      def transferToBaseDir(srcs: String*) = srcs.foreach(src => transfer(src, baseDir / src))
-      def transferScripts(srcs: String*) = srcs.foreach(src => transfer(src, baseDir / "scripts" / src, Set(OWNER_EXECUTE)))
+        def transferToBaseDir(srcs: String*) = srcs.foreach(src => transfer(src, baseDir / src))
+        def transferScripts(srcs: String*) = srcs.foreach(src => transfer(src, baseDir / "scripts" / src, Set(OWNER_EXECUTE)))
 
-      transferScripts("publishAndTag", "bumpDependentProject", "readVersion")
-      transferToBaseDir(
-        "pubring.pgp.enc",
-        "secring.pgp.enc",
-        "pgppassphrase.sbt.enc",
-        "credentials.bintray.enc",
-        "credentials.sonatype.enc"
-      )
-    })
+        transferScripts("publishAndTag", "bumpDependentProject", "readVersion")
+        transferToBaseDir(
+          "pubring.pgp.enc",
+          "secring.pgp.enc",
+          "pgppassphrase.sbt.enc",
+          "credentials.bintray.enc",
+          "credentials.sonatype.enc"
+        )
+      })
 
   override def projectSettings = commonBuildSettings ++ commonPublishSettings ++ Seq(
     version := {
