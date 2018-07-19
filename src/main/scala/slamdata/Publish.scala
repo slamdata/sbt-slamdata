@@ -4,6 +4,7 @@ import sbt._, Keys._
 import bintray.BintrayKeys._
 import com.typesafe.sbt.SbtPgp.autoImportImpl.PgpKeys
 import sbtrelease.ReleasePlugin.autoImport.{ releaseCrossBuild, releasePublishArtifactsAction }
+import sbttravisci.TravisCiPlugin, TravisCiPlugin.autoImport._
 import scala.concurrent.duration._
 
 class Publish {
@@ -40,9 +41,28 @@ class Publish {
       )
     ),
     releasePublishArtifactsAction := PgpKeys.publishSigned.value,
-    PgpKeys.pgpPublicRing in Global := file("./project/local.pubring.pgp"),
-    PgpKeys.pgpSecretRing in Global := file("./project/local.secring.pgp"),
-    bintrayCredentialsFile := file("./local.credentials.bintray"),
+
+    PgpKeys.pgpPublicRing in Global := {
+      if (isTravisBuild.value)
+        file("./project/local.pubring.pgp")
+      else
+        (PgpKeys.pgpPublicRing in Global).value
+    },
+
+    PgpKeys.pgpSecretRing in Global := {
+      if (isTravisBuild.value)
+        file("./project/local.secring.pgp")
+      else
+        (PgpKeys.pgpSecretRing in Global).value
+    },
+
+    bintrayCredentialsFile := {
+      if (isTravisBuild.value)
+        file("./local.credentials.bintray")
+      else
+        bintrayCredentialsFile.value
+    },
+
     credentials ++= Seq(file("./local.credentials.sonatype")).filter(_.exists).map(Credentials(_))
   )
 
