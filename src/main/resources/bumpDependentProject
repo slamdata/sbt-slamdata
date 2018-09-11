@@ -12,12 +12,14 @@ VERSION=$(scripts/readVersion)
 
 
 BRANCH_NAME=$PROJECT-version-bump-$VERSION
-BUMP_MESSAGE=<<EOF
-Bump $PROJECT version to $VERSION
+BUMP_MESSAGE="Bump $PROJECT version to $VERSION"
+
+BUMP_BODY=<<EOF
+Automated bump of $PROJECT version to $VERSION
 
 ## Changes
 
-$(git log --format=%B -n 1)
+$(git log --format=%B -n 1 | sed s/\"/\\\\\"/g)
 EOF
 
 CLONE_DIR=$(mktemp -d "/tmp/slamdata-bump.XXXXXXXX")
@@ -38,7 +40,7 @@ pull_request_post_data() {
   "title": "$BUMP_MESSAGE",
   "head": "$BRANCH_NAME",
   "base": "master",
-  "body": "This PR was generated automatically."
+  "body": "$BUMP_BODY"
 }
 EOF
 }
