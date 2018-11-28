@@ -20,7 +20,7 @@ class Publish {
   lazy val commonPublishSettings = Seq(
     licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
     publishAsOSSProject := true,
-    performMavenCentralSync := publishAsOSSProject.value && !sbtPlugin.value,
+    performMavenCentralSync := false,
     bintrayRepository := { if (publishAsOSSProject.value) "maven-public" else "maven-private" },
     bintrayReleaseOnPublish := false,
     synchronizeWithSonatypeStaging := mavenCentralRelatedTask(bintraySyncSonatypeStaging).value,
