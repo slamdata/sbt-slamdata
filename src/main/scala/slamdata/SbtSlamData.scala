@@ -200,10 +200,19 @@ object SbtSlamData extends AutoPlugin {
             (Files.getPosixFilePermissions(dst.toPath).asScala ++ permissions).asJava)
         }
 
-        def transferToBaseDir(srcs: String*) = srcs.foreach(src => transfer(src, baseDir / src))
-        def transferScripts(srcs: String*) = srcs.foreach(src => transfer(src, baseDir / "scripts" / src, Set(OWNER_EXECUTE)))
+        def transferToBaseDir(srcs: String*) =
+          srcs.foreach(src => transfer(src, baseDir / src))
 
-        transferScripts("publishAndTag", "bumpDependentProject", "readVersion")
+        def transferScripts(srcs: String*) =
+          srcs.foreach(src => transfer(src, baseDir / "scripts" / src, Set(OWNER_EXECUTE)))
+
+        transferScripts(
+          "publishAndTag",
+          "bumpDependentProject",
+          "readVersion",
+          "readTags",
+          "isRevision")
+
         transferToBaseDir(
           "pubring.pgp.enc",
           "secring.pgp.enc",
