@@ -210,7 +210,6 @@ object SbtSlamData extends AutoPlugin {
           "publishAndTag",
           "bumpDependentProject",
           "readVersion",
-          "readTags",
           "isRevision")
 
         transferToBaseDir(
