@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+set -euo pipefail # STRICT MODE
+IFS=$'\n\t'       # http://redsymbol.net/articles/unofficial-bash-strict-mode/
+
+if [ -f version.sbt ]; then
+  change=$(git diff HEAD^ -- version.sbt | \
+    grep 'version in ThisBuild' | \
+    sed 's/.*"\(.*\)"/\1/' | \
+    sed 's/\.[0-9]*$//' | \
+    uniq | \
+    wc -l)
+elif [ -f package.json ]; then
+  change=$(git diff HEAD^ -- package.json | \
+    grep '"version": "' | \
+    sed 's/[+\-]//' | \
+    sed 's/"version": "//' | \
+    sed 's/",//' | \
+    sed 's/v//g' | \
+    sed 's/\.[0-9]*$//' | \
+    uniq | \
+    wc -l)
+else
+  echo "Unable to determine project version. Expected to find one of those files: version.sbt, package.json"
+  exit 1
+fi
+
+if [[ $change -eq 1 ]]; then
+  exit 0
+else
+  exit 1
+fi
