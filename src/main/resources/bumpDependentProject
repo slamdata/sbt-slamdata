@@ -9,6 +9,7 @@ BUMP_VERSION_FUNC=$3
 
 PROJECT=$(sed 's/.*\///' <<< "$TRAVIS_REPO_SLUG")
 VERSION=$(scripts/readVersion)
+IS_REVISION=$(scripts/isRevision)
 
 
 BRANCH_NAME=$PROJECT-version-bump-$VERSION
@@ -23,7 +24,7 @@ $(git log --format=%B -n 1 | sed s/\"/\\\\\"/g)
 EOF
 
 CLONE_DIR=$(mktemp -d "/tmp/slamdata-bump.XXXXXXXX")
-git clone https://$GITHUB_ACCESS_TOKEN@github.com/$TARGET_OWNER/$TARGET_REPO.git $CLONE_DIR
+git clone https://$GITHUB_TOKEN@github.com/$TARGET_OWNER/$TARGET_REPO.git $CLONE_DIR
 cd $CLONE_DIR
 git checkout -b $BRANCH_NAME
 $BUMP_VERSION_FUNC $VERSION
@@ -35,7 +36,7 @@ git commit -am "$BUMP_MESSAGE"
 git push origin $BRANCH_NAME
 
 pull_request_post_data() {
-  cat << EOF
+  cat <<EOF
 {
   "title": "$BUMP_MESSAGE",
   "head": "$BRANCH_NAME",
@@ -45,10 +46,26 @@ pull_request_post_data() {
 EOF
 }
 
-curl -H "Content-Type: application/json" \
-     -H "Authorization: token $GITHUB_ACCESS_TOKEN" \
+pull_request_version_label() {
+  cat <<EOF
+{
+  "labels": [ "version: revision" ]
+}
+EOF
+}
+
+pr_number=$(curl -H "Content-Type: application/json" \
+     -H "Authorization: token $GITHUB_TOKEN" \
      --data "$(pull_request_post_data)" \
-     "https://api.github.com/repos/$TARGET_OWNER/$TARGET_REPO/pulls"
+     "https://api.github.com/repos/$TARGET_OWNER/$TARGET_REPO/pulls" | \
+  jq -r .number)
 
 cd -
 rm -rf $CLONE_DIR
+
+if scripts/isRevision; then
+  curl -H "Content-Type: application/json" \
+       -H "Authorization: token $GITHUB_TOKEN" \
+       --data "$(pull_request_version_label)" \
+       "https://api.github.com/repos/$TARGET_OWNER/$TARGET_REPO/issues/$pr_number/labels"
+fi
