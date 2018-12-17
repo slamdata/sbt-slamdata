@@ -15,8 +15,7 @@ if [ $TRAVIS_PULL_REQUEST != "false" ] && [[ $TRAVIS_PULL_REQUEST_BRANCH =~ 'ver
     done
   else
     echo 'PR branch is labeled as version: revision, but master is not up to date with revision branch'
-    exit -1
   fi
 else
-  exit -1
+  echo "PR does not appear to be a verison bump; skipping automerge checks"
 fi
