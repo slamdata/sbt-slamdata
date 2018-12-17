@@ -211,6 +211,7 @@ object SbtSlamData extends AutoPlugin {
         transferScripts(
           baseDir,
           "checkAndAutoMerge",
+          "commonSetup",
           "discordTravisPost",
           "listLabels")
       })
