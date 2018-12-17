@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -euo pipefail # STRICT MODE
+IFS=$'\n\t'        # http://redsymbol.net/articles/unofficial-bash-strict-mode/
+
+gem install octokit
+
+git config --global user.email "bot@slamdata.com"
+git config --global user.name "SlamData Bot"
