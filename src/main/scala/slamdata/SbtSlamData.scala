@@ -31,6 +31,9 @@ object SbtSlamData extends AutoPlugin {
     lazy val transferPublishAndTagResources = taskKey[Unit](
       "Transfers publishAndTag script and associated resources")
 
+    lazy val transferCommonResources = taskKey[Unit](
+      "Transfers common resources not used in publication")
+
     lazy val scalacStrictMode = settingKey[Boolean](
       "Include stricter warnings and WartRemover settings")
 
@@ -184,42 +187,49 @@ object SbtSlamData extends AutoPlugin {
       },
 
       transferPublishAndTagResources := {
-        val log = streams.value.log
-
         val baseDir = (baseDirectory in ThisBuild).value
 
-        def transfer(src: String, dst: File, permissions: Set[PosixFilePermission] = Set()) = {
-          val srcʹ = getClass.getClassLoader.getResourceAsStream(src)
-
-          log.info(s"transferring $src to $dst")
-
-          IO.transfer(srcʹ, dst)
-
-          Files.setPosixFilePermissions(
-            dst.toPath,
-            (Files.getPosixFilePermissions(dst.toPath).asScala ++ permissions).asJava)
-        }
-
-        def transferToBaseDir(srcs: String*) =
-          srcs.foreach(src => transfer(src, baseDir / src))
-
-        def transferScripts(srcs: String*) =
-          srcs.foreach(src => transfer(src, baseDir / "scripts" / src, Set(OWNER_EXECUTE)))
-
         transferScripts(
+          baseDir,
           "publishAndTag",
           "bumpDependentProject",
           "readVersion",
           "isRevision")
 
         transferToBaseDir(
+          baseDir,
           "pubring.pgp.enc",
           "secring.pgp.enc",
           "pgppassphrase.sbt.enc",
           "credentials.bintray.enc",
-          "credentials.sonatype.enc"
-        )
+          "credentials.sonatype.enc")
+      },
+
+      transferCommonResources := {
+        val baseDir = (baseDirectory in ThisBuild).value
+
+        transferScripts(
+          baseDir,
+          "checkAndAutoMerge",
+          "discordTravisPost",
+          "listLabels")
       })
+
+  private def transfer(src: String, dst: File, permissions: Set[PosixFilePermission] = Set()) = {
+    val src2 = getClass.getClassLoader.getResourceAsStream(src)
+
+    IO.transfer(src2, dst)
+
+    Files.setPosixFilePermissions(
+      dst.toPath,
+      (Files.getPosixFilePermissions(dst.toPath).asScala ++ permissions).asJava)
+  }
+
+  private def transferToBaseDir(baseDir: File, srcs: String*) =
+    srcs.foreach(src => transfer(src, baseDir / src))
+
+  private def transferScripts(baseDir: File, srcs: String*) =
+    srcs.foreach(src => transfer(src, baseDir / "scripts" / src, Set(OWNER_EXECUTE)))
 
   override def projectSettings = commonBuildSettings ++ commonPublishSettings ++ Seq(
     version := {

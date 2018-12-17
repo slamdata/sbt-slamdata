@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -euo pipefail # STRICT MODE
+IFS=$'\n\t'        # http://redsymbol.net/articles/unofficial-bash-strict-mode/
+
+if [ $TRAVIS_PULL_REQUEST != "false" ] && [[ $TRAVIS_PULL_REQUEST_BRANCH =~ 'version-bump' ]]; then
+  versions=$(git diff HEAD^ | grep -e '^[-+][0-9]' | sed 's/^[+\-]//' | sed 's/\.[0-9]*$//' | uniq | wc -l)
+
+  if [[ "$versions" -eq 1 ]]; then
+    clone_dir=$(mktemp -d "/tmp/slamdata-bump.XXXXXXXX")
+    git clone --depth 1 https://$GITHUB_TOKEN@github.com/slamdata/devtools.git $clone_dir
+
+    for t in "$(scripts/listLabels | grep 'version: revision')"; do
+      $clone_dir/bin/sdmerge $TRAVIS_REPO_SLUG $TRAVIS_PULL_REQUEST
+    done
+  else
+    echo 'PR branch is labeled as version: revision, but master is not up to date with revision branch'
+    exit -1
+  fi
+else
+  exit -1
+fi
