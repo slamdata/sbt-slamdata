@@ -9,24 +9,19 @@ BUMP_VERSION_FUNC=$3
 
 PROJECT=$(sed 's/.*\///' <<< "$TRAVIS_REPO_SLUG")
 VERSION=$(scripts/readVersion)
-IS_REVISION=$(scripts/isRevision)
 
+echo "Attempting to autobump $TARGET_OWNER/$TARGET_REPO..."
 
 BRANCH_NAME=$PROJECT-version-bump-$VERSION
 BUMP_MESSAGE="Bump $PROJECT version to $VERSION"
 
-BUMP_BODY=<<EOF
-Automated bump of $PROJECT version to $VERSION
-
-## Changes
-
-$(git log --format=%B -n 1 | sed s/\"/\\\\\"/g)
-EOF
+OLD_DIR=$(pwd)
 
 CLONE_DIR=$(mktemp -d "/tmp/slamdata-bump.XXXXXXXX")
-git clone https://$GITHUB_TOKEN@github.com/$TARGET_OWNER/$TARGET_REPO.git $CLONE_DIR
+git clone --depth 100 https://$GITHUB_TOKEN@github.com/$TARGET_OWNER/$TARGET_REPO.git $CLONE_DIR
 cd $CLONE_DIR
 git checkout -b $BRANCH_NAME
+
 $BUMP_VERSION_FUNC $VERSION
 
 git config user.email "bot@slamdata.com"
@@ -35,13 +30,43 @@ git config user.name "SlamData Bot"
 git commit -am "$BUMP_MESSAGE"
 git push origin $BRANCH_NAME
 
+VERSION_FILE=$(git diff --name-only HEAD^)
+git checkout HEAD^ -- $VERSION_FILE
+OLD_VERSION=$(cat $VERSION_FILE)
+
+git reset --hard HEAD
+
+# now that we know what the old version is, go back and build a changelog
+cd $OLD_DIR
+
+echo "The old version is $OLD_VERSION"
+
+VERSION_FILE=$(if [ -f version.sbt ]; then
+  echo version.sbt
+elif [ -f package.json ]; then
+  echo package.json
+else
+  echo "Unable to determine project version. Expected to find one of those files: version.sbt, package.json"
+  exit 1
+fi)
+
+BUMP_BODY=$"
+Automated bump of **$PROJECT** version to **$VERSION**. If this is a revision change, it will automatically merge itself upon successful build.
+
+## Changes
+
+$(git log --merges --format='# %B' v$OLD_VERSION..HEAD -- $VERSION_FILE | sed 's/^#/###/g')
+"
+
+cd $CLONE_DIR
+
 pull_request_post_data() {
   cat <<EOF
 {
   "title": "$BUMP_MESSAGE",
   "head": "$BRANCH_NAME",
   "base": "master",
-  "body": "$BUMP_BODY"
+  "body": "$(echo "$BUMP_BODY" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g')"
 }
 EOF
 }
@@ -53,6 +78,10 @@ pull_request_version_label() {
 }
 EOF
 }
+
+echo "Posting data to github"
+echo "$(pull_request_post_data)"
+echo
 
 pr_number=$(curl -H "Content-Type: application/json" \
      -H "Authorization: token $GITHUB_TOKEN" \
