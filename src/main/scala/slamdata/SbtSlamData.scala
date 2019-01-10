@@ -155,10 +155,12 @@ object SbtSlamData extends AutoPlugin {
     ) ++ headerLicenseSettings
 
     implicit final class ProjectSyntax(val self: Project) {
-      def evictToLocal(envar: String, subproject: String): Project = {
+      def evictToLocal(envar: String, subproject: String, test: Boolean = false): Project = {
         val eviction = Option(System.getenv(envar)).map(file).filter(_.exists()) map { f =>
           foundLocalEvictions += (envar -> subproject)
-          self.dependsOn(ProjectRef(f, subproject))
+
+          val ref = ProjectRef(f, subproject)
+          self.dependsOn(if (test) ref % "test->test;compile->compile" else ref)
         }
 
         eviction.getOrElse(self)
