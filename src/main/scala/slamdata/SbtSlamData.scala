@@ -17,6 +17,8 @@ import wartremover.{wartremoverWarnings, Wart, Warts}
 // Inspired by sbt-catalysts
 
 object SbtSlamData extends AutoPlugin {
+  private var foundLocalEvictions: Set[(String, String)] = Set()
+
   override def requires =
     plugins.JvmPlugin &&
     BintrayPlugin &&
@@ -28,6 +30,9 @@ object SbtSlamData extends AutoPlugin {
   object autoImport extends Base
 
   class Base extends Publish {
+    lazy val checkLocalEvictions = taskKey[Unit](
+      "Checks for the existence of local evictions in the build and fails if they are found")
+
     lazy val transferPublishAndTagResources = taskKey[Unit](
       "Transfers publishAndTag script and associated resources")
 
@@ -148,12 +153,23 @@ object SbtSlamData extends AutoPlugin {
         }
       }
     ) ++ headerLicenseSettings
+
+    implicit final class ProjectSyntax(val self: Project) {
+      def evictToLocal(envar: String, subproject: String): Project = {
+        val eviction = Option(System.getenv(envar)).map(file).filter(_.exists()) map { f =>
+          foundLocalEvictions += (envar -> subproject)
+          self.dependsOn(ProjectRef(f, subproject))
+        }
+
+        eviction.getOrElse(self)
+      }
+    }
   }
 
   import autoImport._
 
   override def buildSettings =
-    addCommandAlias("releaseSnapshot", "; project root; reload; publishSigned; bintrayRelease") ++
+    addCommandAlias("releaseSnapshot", "; project root; reload; checkLocalEvictions; publishSigned; bintrayRelease") ++
     Seq(
       organization := "com.slamdata",
 
@@ -184,6 +200,12 @@ object SbtSlamData extends AutoPlugin {
       useGpg in Global := {
         val oldValue = (useGpg in Global).value
         !isTravisBuild.value || oldValue
+      },
+
+      checkLocalEvictions := {
+        if (!foundLocalEvictions.isEmpty) {
+          sys.error(s"found active local evictions: ${foundLocalEvictions.mkString("[", ", ", "]")}; publication is disabled")
+        }
       },
 
       transferPublishAndTagResources := {
