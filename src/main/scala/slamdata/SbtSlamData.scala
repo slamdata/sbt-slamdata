@@ -240,14 +240,18 @@ object SbtSlamData extends AutoPlugin {
           "listLabels")
       })
 
+  private def isWindows(): Boolean = System.getProperty("os.name").startsWith("Windows")
+
   private def transfer(src: String, dst: File, permissions: Set[PosixFilePermission] = Set()) = {
     val src2 = getClass.getClassLoader.getResourceAsStream(src)
 
     IO.transfer(src2, dst)
 
-    Files.setPosixFilePermissions(
-      dst.toPath,
-      (Files.getPosixFilePermissions(dst.toPath).asScala ++ permissions).asJava)
+    if (!isWindows()) {
+      Files.setPosixFilePermissions(
+        dst.toPath,
+        (Files.getPosixFilePermissions(dst.toPath).asScala ++ permissions).asJava)
+    }
   }
 
   private def transferToBaseDir(baseDir: File, srcs: String*) =
