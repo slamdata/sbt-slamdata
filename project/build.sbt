@@ -1,4 +1,4 @@
-val sbtPgpVersion      = "1.1.0"
+val sbtPgpVersion      = "1.1.2"
 val sbtReleaseVersion  = "1.0.11"
 val sbtTravisCiVersion = "1.2.0"
 val sbtBintrayVersion  = "0.5.5"
