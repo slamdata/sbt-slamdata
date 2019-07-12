@@ -19,7 +19,7 @@ lazy val root = (project in file("."))
     addSbtPlugin("org.foundweekends" % "sbt-bintray"     % BuildInfo.sbtBintrayVersion),
     addSbtPlugin("com.dwijnand"      % "sbt-travisci"    % BuildInfo.sbtTravisCiVersion),
     addSbtPlugin("de.heikoseeberger" % "sbt-header"      % "3.0.2"),
-    addSbtPlugin("org.wartremover"   % "sbt-wartremover" % "2.2.1"))
+    addSbtPlugin("org.wartremover"   % "sbt-wartremover" % "2.4.2"))
   .settings(publishSettings)
 
 lazy val publishSettings = Publish.commonPublishSettings ++ Seq(
