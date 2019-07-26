@@ -7,12 +7,7 @@ lazy val root = (project in file("."))
     organization := "com.slamdata",
     description  := "Common build configuration for SBT projects",
     sbtPlugin    := true,
-    sbtVersion in Global := {
-      scalaBinaryVersion.value match {
-        case "2.10" => "0.13.16"
-        case "2.12" => "1.0.2"
-      }
-    })
+    sbtVersion in Global := "1.2.8")
   .settings(
     addSbtPlugin("com.jsuereth"      % "sbt-pgp"         % BuildInfo.sbtPgpVersion),
     addSbtPlugin("com.github.gseitz" % "sbt-release"     % BuildInfo.sbtReleaseVersion),
