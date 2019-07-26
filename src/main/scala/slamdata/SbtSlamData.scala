@@ -101,7 +101,7 @@ object SbtSlamData extends AutoPlugin {
       autoCompilerPlugins := true,
       autoAPIMappings := true,
 
-      addCompilerPlugin("org.spire-math"  %% "kind-projector" % "0.9.4"),
+      addCompilerPlugin("org.typelevel"   %% "kind-projector" % "0.10.3"),
       addCompilerPlugin("org.scalamacros" %  "paradise"       % "2.1.0" cross CrossVersion.patch),
 
       // default to true
