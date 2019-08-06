@@ -237,7 +237,8 @@ object SbtSlamData extends AutoPlugin {
           "checkAndAutoMerge",
           "commonSetup",
           "discordTravisPost",
-          "listLabels")
+          "listLabels",
+          "closePR")
       })
 
   private def isWindows(): Boolean = System.getProperty("os.name").startsWith("Windows")
