@@ -101,8 +101,9 @@ object SbtSlamData extends AutoPlugin {
       autoCompilerPlugins := true,
       autoAPIMappings := true,
 
-      addCompilerPlugin("org.typelevel"   %% "kind-projector" % "0.10.3"),
-      addCompilerPlugin("org.scalamacros" %  "paradise"       % "2.1.0" cross CrossVersion.patch),
+      addCompilerPlugin("org.typelevel"   %% "kind-projector"     % "0.10.3"),
+      addCompilerPlugin("org.scalamacros" %  "paradise"           % "2.1.0" cross CrossVersion.patch),
+      addCompilerPlugin("com.olegpy"      %% "better-monadic-for" % "0.3.1"),
 
       // default to true
       scalacStrictMode := true,
