@@ -89,12 +89,13 @@ pr_number=$(curl -H "Content-Type: application/json" \
      "https://api.github.com/repos/$TARGET_OWNER/$TARGET_REPO/pulls" | \
   jq -r .number)
 
-cd -
-rm -rf $CLONE_DIR
-
-if scripts/isRevision; then
+# check the revision status of the *applied* autobump
+if $OLD_DIR/scripts/isRevision; then
   curl -H "Content-Type: application/json" \
        -H "Authorization: token $GITHUB_TOKEN" \
        --data "$(pull_request_version_label)" \
        "https://api.github.com/repos/$TARGET_OWNER/$TARGET_REPO/issues/$pr_number/labels"
 fi
+
+cd -
+rm -rf $CLONE_DIR
