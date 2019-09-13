@@ -12,7 +12,6 @@ import com.typesafe.sbt.SbtPgp
 import com.typesafe.sbt.pgp.PgpKeys._
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.{headerCreate, headerLicense, HeaderLicense}
 import sbttravisci.TravisCiPlugin, TravisCiPlugin.autoImport._
-import wartremover.{wartremoverWarnings, Wart, Warts}
 
 // Inspired by sbt-catalysts
 
@@ -89,6 +88,11 @@ object SbtSlamData extends AutoPlugin {
 
     def scalacOptions_2_12(strict: Boolean) = Seq("-target:jvm-1.8")
 
+    def scalacOptions_2_13(strict: Boolean) = {
+      val numCPUs = java.lang.Runtime.getRuntime.availableProcessors()
+      Seq(s"-Ybackend-parallelism", numCPUs.toString)
+    }
+
     val headerLicenseSettings = Seq(
       headerLicense := Some(HeaderLicense.ALv2("2014–2019", "SlamData Inc.")),
       licenses += (("Apache 2", url("http://www.apache.org/licenses/LICENSE-2.0"))),
@@ -112,9 +116,17 @@ object SbtSlamData extends AutoPlugin {
         val strict = scalacStrictMode.value
 
         CrossVersion.partialVersion(scalaVersion.value) match {
+          case Some((2, 13)) => scalacOptions_2_10(strict) ++ scalacOptions_2_11(strict) ++ scalacOptions_2_12(strict) ++ scalacOptions_2_13(strict)
           case Some((2, 12)) => scalacOptions_2_10(strict) ++ scalacOptions_2_11(strict) ++ scalacOptions_2_12(strict)
           case Some((2, 11)) => scalacOptions_2_10(strict) ++ scalacOptions_2_11(strict)
           case _ => scalacOptions_2_10(strict)
+        }
+      },
+
+      scalacOptions --= {
+        CrossVersion.partialVersion(scalaVersion.value) match {
+          case Some((2, n)) if n >= 13 => Some("-Ypartial-unification")
+          case _ => None
         }
       },
 
@@ -130,29 +142,6 @@ object SbtSlamData extends AutoPlugin {
         "-Ywarn-unused-import"),
 
       scalacOptions in (Compile, doc) -= "-Xfatal-warnings",
-
-      wartremoverWarnings in (Compile, compile) ++= {
-        if (scalacStrictMode.value) {
-          Warts.allBut(
-            Wart.Any,                   // - see puffnfresh/wartremover#263
-            Wart.ExplicitImplicitTypes, // - see puffnfresh/wartremover#226
-            Wart.ImplicitConversion,    // - see mpilquist/simulacrum#35
-            Wart.Nothing)               // - see puffnfresh/wartremover#263
-        } else {
-          Seq.empty
-        }
-      },
-
-      wartremoverWarnings in (Compile, compile) --= {
-        if (scalacStrictMode.value) {
-          CrossVersion.partialVersion(scalaVersion.value) match {
-            case Some((2, 11)) | Some((2, 12)) => Nil
-            case _                             => Seq(Wart.Overloading) // Falsely triggers on 2.10
-          }
-        } else {
-          Seq.empty
-        }
-      }
     ) ++ headerLicenseSettings
 
     implicit final class ProjectSyntax(val self: Project) {
