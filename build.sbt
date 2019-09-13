@@ -7,14 +7,13 @@ lazy val root = (project in file("."))
     organization := "com.slamdata",
     description  := "Common build configuration for SBT projects",
     sbtPlugin    := true,
-    sbtVersion in Global := "1.2.8")
+    sbtVersion in Global := "1.3.0")
   .settings(
     addSbtPlugin("com.jsuereth"      % "sbt-pgp"         % BuildInfo.sbtPgpVersion),
     addSbtPlugin("com.github.gseitz" % "sbt-release"     % BuildInfo.sbtReleaseVersion),
     addSbtPlugin("org.foundweekends" % "sbt-bintray"     % BuildInfo.sbtBintrayVersion),
     addSbtPlugin("com.dwijnand"      % "sbt-travisci"    % BuildInfo.sbtTravisCiVersion),
-    addSbtPlugin("de.heikoseeberger" % "sbt-header"      % "3.0.2"),
-    addSbtPlugin("org.wartremover"   % "sbt-wartremover" % "2.2.1"))
+    addSbtPlugin("de.heikoseeberger" % "sbt-header"      % "3.0.2"))
   .settings(publishSettings)
 
 lazy val publishSettings = Publish.commonPublishSettings ++ Seq(
