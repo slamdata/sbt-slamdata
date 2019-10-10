@@ -90,8 +90,22 @@ object SbtSlamData extends AutoPlugin {
 
     def scalacOptions_2_13(strict: Boolean) = {
       val numCPUs = java.lang.Runtime.getRuntime.availableProcessors()
-      Seq(s"-Ybackend-parallelism", numCPUs.toString)
+      Seq(
+        s"-Ybackend-parallelism", numCPUs.toString,
+        "-Wunused:imports",
+        "-Wdead-code",
+        "-Wnumeric-widen",
+        "-Wvalue-discard")
     }
+
+    val scalacOptionsRemoved_2_13 =
+      Seq(
+        "-Yno-adapted-args",
+        "-Ywarn-unused-import",
+        "-Ywarn-value-discard",
+        "-Ywarn-numeric-widen",
+        "-Ywarn-dead-code",
+        "-Xfuture")
 
     val headerLicenseSettings = Seq(
       headerLicense := Some(HeaderLicense.ALv2("2014–2019", "SlamData Inc.")),
@@ -115,9 +129,18 @@ object SbtSlamData extends AutoPlugin {
         val strict = scalacStrictMode.value
 
         CrossVersion.partialVersion(scalaVersion.value) match {
-          case Some((2, 13)) => scalacOptions_2_10(strict) ++ scalacOptions_2_11(strict) ++ scalacOptions_2_12(strict) ++ scalacOptions_2_13(strict)
+          case Some((2, 13)) =>
+            val mainline = scalacOptions_2_10(strict) ++
+              scalacOptions_2_11(strict) ++
+              scalacOptions_2_12(strict) ++
+              scalacOptions_2_13(strict)
+
+            mainline.filterNot(scalacOptionsRemoved_2_13.contains)
+
           case Some((2, 12)) => scalacOptions_2_10(strict) ++ scalacOptions_2_11(strict) ++ scalacOptions_2_12(strict)
+
           case Some((2, 11)) => scalacOptions_2_10(strict) ++ scalacOptions_2_11(strict)
+
           case _ => scalacOptions_2_10(strict)
         }
       },
