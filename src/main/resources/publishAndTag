@@ -30,7 +30,7 @@ if [[
 
   # Only publish on oraclejdk8 or openjdk8
   if [[ $JAVA_HOME == *java-8-oracle || $JAVA_HOME == *java-1.8.0-openjdk-amd64 || $JAVA_HOME == *java-8-openjdk-amd64 ]]; then
-    "$SBT" ++"$TRAVIS_SCALA_VERSION" bintrayEnsureBintrayPackageExists publishSigned bintrayRelease synchronizeWithSonatypeStaging releaseToMavenCentral
+    "$SBT" +bintrayEnsureBintrayPackageExists +publishSigned bintrayRelease synchronizeWithSonatypeStaging releaseToMavenCentral
   else
     echo >&2 "Travis not running against oraclejdk8/openjdk8, so skipping publish (found ${JAVA_HOME})"
   fi
