@@ -28,16 +28,10 @@ if [[
   openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in credentials.bintray.enc  -out local.credentials.bintray  -d
   openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in credentials.sonatype.enc -out local.credentials.sonatype -d
 
-  # Only publish on oraclejdk8 or openjdk8
-  if [[ $JAVA_HOME == *java-8-oracle || $JAVA_HOME == *java-1.8.0-openjdk-amd64 || $JAVA_HOME == *java-8-openjdk-amd64 ]]; then
-    "$SBT" +bintrayEnsureBintrayPackageExists +publishSigned bintrayRelease synchronizeWithSonatypeStaging releaseToMavenCentral
-  else
-    echo >&2 "Travis not running against oraclejdk8/openjdk8, so skipping publish (found ${JAVA_HOME})"
-  fi
-
-
-  # Only tag on first travis job
+  # Only publish and tag on first travis job
   if [[ "${TRAVIS_JOB_NUMBER##*.}" == "1" ]]; then
+    "$SBT" +bintrayEnsureBintrayPackageExists +publishSigned bintrayRelease synchronizeWithSonatypeStaging releaseToMavenCentral
+
     HEAD_SHA=$(git rev-parse HEAD)
     TAG=v$VERSION
     TAG_MSG="$PROJECT $VERSION"
@@ -65,6 +59,8 @@ if [[
       -H "Content-Type: application/json"            \
       -H "Authorization: token $GITHUB_ACCESS_TOKEN" \
       "https://api.github.com/repos/${TRAVIS_REPO_SLUG}/git/refs"
+  else
+    echo 'Travis not running on the primary job; skipping publication and tagging'
   fi
 else
   echo "Travis not running in ${REPO_SLUG}#master or ${REPO_SLUG}#backport/*, so skipping publishAndTag"
