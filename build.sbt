@@ -13,7 +13,7 @@ lazy val root = (project in file("."))
     addSbtPlugin("com.github.gseitz" % "sbt-release"     % BuildInfo.sbtReleaseVersion),
     addSbtPlugin("org.foundweekends" % "sbt-bintray"     % BuildInfo.sbtBintrayVersion),
     addSbtPlugin("com.dwijnand"      % "sbt-travisci"    % BuildInfo.sbtTravisCiVersion),
-    addSbtPlugin("de.heikoseeberger" % "sbt-header"      % "3.0.2"))
+    addSbtPlugin("de.heikoseeberger" % "sbt-header"      % "5.3.1"))
   .settings(publishSettings)
 
 lazy val publishSettings = Publish.commonPublishSettings ++ Seq(
