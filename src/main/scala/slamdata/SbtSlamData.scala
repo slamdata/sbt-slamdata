@@ -188,7 +188,7 @@ object SbtSlamData extends AutoPlugin {
   import autoImport._
 
   override def globalSettings = Seq(
-    concurrentRestrictions in Global := {
+    concurrentRestrictions := {
       val oldValue = (concurrentRestrictions in Global).value
       val maxTasks = 2
       if (isTravisBuild.value)
@@ -199,12 +199,12 @@ object SbtSlamData extends AutoPlugin {
     },
 
     // Tasks tagged with `ExclusiveTest` should be run exclusively.
-    concurrentRestrictions in Global += Tags.exclusive(ExclusiveTest),
+    concurrentRestrictions += Tags.exclusive(ExclusiveTest),
 
     // Version check changes sbt files, so nothing else can be done at that time
-    concurrentRestrictions in Global += Tags.exclusive(VersionCheck),
+    concurrentRestrictions += Tags.exclusive(VersionCheck),
 
-    useGpg in Global := {
+    useGpg := {
       val oldValue = (useGpg in Global).value
       !isTravisBuild.value || oldValue
     }
@@ -292,7 +292,7 @@ object SbtSlamData extends AutoPlugin {
 
     val logger: Logger = streams.value.log
     def relog(line: String): Unit = {
-      val level = """\[([^]]*)\].*""".r
+      val level = """^\[([^]]*)\].*""".r
       line match {
         case level("debug") => logger.debug(line)
         case level("info") => logger.info(line)
@@ -304,7 +304,7 @@ object SbtSlamData extends AutoPlugin {
     }
     val logToSbt = ProcessLogger(relog _)
 
-    val getCsbt = "wget -O csbt https://github.com/coursier/sbt-extras/raw/master/sbt"
+    val getCsbt = "curl -L -o csbt https://github.com/coursier/sbt-extras/raw/master/sbt"
     val csbtUpdate: Seq[String] = Seq(
       "/usr/bin/env",
       "bash",
@@ -319,17 +319,14 @@ object SbtSlamData extends AutoPlugin {
     val pluginCmd = """addSbtPlugin("io.get-coursier" % "sbt-coursier" % "2.0.0-RC5-2")"""
 
     val check = Try {
-      def ensureCoursierSbt = {
-        if (!file("csbt").exists) {
-          logger.info("downloading coursier sbt-extras to csbt")
-          logger.debug(getCsbt)
-          if ((getCsbt ! logToSbt) != 0) {
-            throw new IllegalStateException("unable to download coursier sbt-extras")
-          }
+      if (!file("csbt").exists) {
+        logger.info("downloading coursier sbt-extras to csbt")
+        logger.debug(getCsbt)
+        if ((getCsbt ! logToSbt) != 0) {
+          throw new IllegalStateException("unable to download coursier sbt-extras")
         }
       }
 
-      ensureCoursierSbt
       pluginFile.writeAll(pluginCmd)
 
       logger.debug(csbtUpdate mkString " ")
