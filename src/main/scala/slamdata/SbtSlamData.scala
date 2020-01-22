@@ -6,6 +6,7 @@ import java.io.File
 import java.nio.file.attribute.PosixFilePermission, PosixFilePermission.OWNER_EXECUTE
 import java.nio.file.Files
 import scala.collection.JavaConverters._
+import scala.util.{Failure, Success, Try}
 
 import bintray.{BintrayKeys, BintrayPlugin}, BintrayKeys._
 import com.typesafe.sbt.SbtPgp
@@ -40,6 +41,10 @@ object SbtSlamData extends AutoPlugin {
 
     lazy val scalacStrictMode = settingKey[Boolean](
       "Include stricter warnings and WartRemover settings")
+
+    lazy val versionCheck = taskKey[Unit]("Check slamdata dependencies for conflicts")
+
+    val VersionCheck = Tags.Tag("versionCheck")
 
     val BothScopes = "test->test;compile->compile"
 
@@ -182,6 +187,29 @@ object SbtSlamData extends AutoPlugin {
 
   import autoImport._
 
+  override def globalSettings = Seq(
+    concurrentRestrictions := {
+      val oldValue = (concurrentRestrictions in Global).value
+      val maxTasks = 2
+      if (isTravisBuild.value)
+      // Recreate the default rules with the task limit hard-coded:
+        Seq(Tags.limitAll(maxTasks), Tags.limit(Tags.ForkedTestGroup, 1))
+      else
+        oldValue
+    },
+
+    // Tasks tagged with `ExclusiveTest` should be run exclusively.
+    concurrentRestrictions += Tags.exclusive(ExclusiveTest),
+
+    // Version check changes sbt files, so nothing else can be done at that time
+    concurrentRestrictions += Tags.exclusive(VersionCheck),
+
+    useGpg := {
+      val oldValue = (useGpg in Global).value
+      !isTravisBuild.value || oldValue
+    }
+  )
+
   override def buildSettings =
     addCommandAlias("releaseSnapshot", "; project root; reload; checkLocalEvictions; publishSigned; bintrayRelease") ++
     Seq(
@@ -198,23 +226,6 @@ object SbtSlamData extends AutoPlugin {
         Resolver.bintrayRepo("non", "maven"),
         Resolver.bintrayRepo("slamdata-inc", "maven-public"),
         Resolver.bintrayRepo("slamdata-inc", "maven-private")),
-
-      concurrentRestrictions := {
-        val maxTasks = 2
-        if (isTravisBuild.value)
-          // Recreate the default rules with the task limit hard-coded:
-          Seq(Tags.limitAll(maxTasks), Tags.limit(Tags.ForkedTestGroup, 1))
-        else
-          concurrentRestrictions.value
-      },
-
-      // Tasks tagged with `ExclusiveTest` should be run exclusively.
-      concurrentRestrictions += Tags.exclusive(ExclusiveTest),
-
-      useGpg in Global := {
-        val oldValue = (useGpg in Global).value
-        !isTravisBuild.value || oldValue
-      },
 
       checkLocalEvictions := {
         if (!foundLocalEvictions.isEmpty) {
@@ -251,7 +262,10 @@ object SbtSlamData extends AutoPlugin {
           "discordTravisPost",
           "listLabels",
           "closePR")
-      })
+      },
+
+      versionCheck := slamdataVersionCheck.value
+    )
 
   private def isWindows(): Boolean = System.getProperty("os.name").startsWith("Windows")
 
@@ -273,6 +287,67 @@ object SbtSlamData extends AutoPlugin {
   private def transferScripts(baseDir: File, srcs: String*) =
     srcs.foreach(src => transfer(src, baseDir / "scripts" / src, Set(OWNER_EXECUTE)))
 
+  private def slamdataVersionCheck = Def.task {
+    import scala.sys.process._
+
+    val logger: Logger = streams.value.log
+    def relog(line: String): Unit = {
+      val level = """^\[([^]]*)\].*""".r
+      line match {
+        case level("debug") => logger.debug(line)
+        case level("info") => logger.info(line)
+        case level("warn") => logger.warn(line)
+        case level("error") => logger.error(line)
+        case level("success") => logger.success(line)
+        case _ => logger.info(line)
+      }
+    }
+    val logToSbt = ProcessLogger(relog _)
+
+    val getCsbt = "curl -L -o csbt https://github.com/coursier/sbt-extras/raw/master/sbt"
+    val csbtUpdate: Seq[String] = Seq(
+      "/usr/bin/env",
+      "bash",
+      "./csbt",
+      """set versionReconciliation += "com.slamdata" % "*" % "strict"""",
+      "update")
+    val sbtUpdate = "./sbt update"
+
+    logger.info("running slamdata version check")
+
+    val pluginFile = scala.reflect.io.File("project/coursier.sbt")
+    val pluginCmd = """addSbtPlugin("io.get-coursier" % "sbt-coursier" % "2.0.0-RC5-2")"""
+
+    val check = Try {
+      if (!file("csbt").exists) {
+        logger.info("downloading coursier sbt-extras to csbt")
+        logger.debug(getCsbt)
+        if ((getCsbt ! logToSbt) != 0) {
+          throw new IllegalStateException("unable to download coursier sbt-extras")
+        }
+      }
+
+      pluginFile.writeAll(pluginCmd)
+
+      logger.debug(csbtUpdate mkString " ")
+      if((csbtUpdate ! logToSbt) == 0) {
+        "slamdata versions checks out"
+      } else {
+        throw new IllegalStateException("slamdata version conflict detected!")
+      }
+    }
+    pluginFile.delete()
+
+    sbtUpdate ! logToSbt
+
+    check match {
+      case Success(msg) => logger.success(msg)
+      case Failure(e) =>
+        logger.error(e.getMessage)
+        throw e
+    }
+  } tag(VersionCheck)
+
   override def projectSettings = commonBuildSettings ++ commonPublishSettings ++ Seq(
     version := {
       import scala.sys.process._
@@ -282,5 +357,28 @@ object SbtSlamData extends AutoPlugin {
         currentVersion + "-" + "git rev-parse HEAD".!!.substring(0, 7)
       else
         currentVersion
-    })
+    },
+
+    Test / test := (Def.taskDyn {
+      val r = resolvedScoped.value
+      val st = state.value
+      val structure = Project.extract(st).structure
+      val isRoot = r.scope.project match {
+        case Select(ref: ProjectRef) =>
+          structure.rootProject(ref.build) == ref.project
+        case _ => false
+      }
+      val t: Unit = (Test / test).value
+      if (isRoot && isTravisBuild.value) {
+        Def.task {
+          versionCheck.value
+          t
+        }
+      } else {
+        Def.task {
+          t
+        }
+      }
+    }).value
+  )
 }
