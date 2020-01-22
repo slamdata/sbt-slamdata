@@ -360,8 +360,16 @@ object SbtSlamData extends AutoPlugin {
     },
 
     Test / test := (Def.taskDyn {
+      val r = resolvedScoped.value
+      val st = state.value
+      val structure = Project.extract(st).structure
+      val isRoot = r.scope.project match {
+        case Select(ref: ProjectRef) =>
+          structure.rootProject(ref.build) == ref.project
+        case _ => false
+      }
       val t: Unit = (Test / test).value
-      if (name.value == "root" && isTravisBuild.value) {
+      if (isRoot && isTravisBuild.value) {
         Def.task {
           versionCheck.value
           t
