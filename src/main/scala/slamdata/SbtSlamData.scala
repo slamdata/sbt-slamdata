@@ -113,7 +113,7 @@ object SbtSlamData extends AutoPlugin {
         "-Xfuture")
 
     val headerLicenseSettings = Seq(
-      headerLicense := Some(HeaderLicense.ALv2("2014–2019", "SlamData Inc.")),
+      headerLicense := Some(HeaderLicense.ALv2("2014–2020", "SlamData Inc.")),
       licenses += (("Apache 2", url("http://www.apache.org/licenses/LICENSE-2.0"))),
       checkHeaders := {
         if ((headerCreate in Compile).value.nonEmpty) sys.error("headers not all present")
