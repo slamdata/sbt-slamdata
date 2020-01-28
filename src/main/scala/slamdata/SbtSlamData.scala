@@ -357,7 +357,7 @@ object SbtSlamData extends AutoPlugin {
         currentVersion + "-" + "git rev-parse HEAD".!!.substring(0, 7)
       else
         currentVersion
-    },
+    }/*,
 
     Test / test := (Def.taskDyn {
       val r = resolvedScoped.value
@@ -379,6 +379,6 @@ object SbtSlamData extends AutoPlugin {
           t
         }
       }
-    }).value
+    }).value*/
   )
 }
