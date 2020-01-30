@@ -188,7 +188,7 @@ object SbtSlamData extends AutoPlugin {
   import autoImport._
 
   override def globalSettings = Seq(
-    concurrentRestrictions := {
+    concurrentRestrictions in Global := {
       val oldValue = (concurrentRestrictions in Global).value
       val maxTasks = 2
       if (isTravisBuild.value)
@@ -199,16 +199,15 @@ object SbtSlamData extends AutoPlugin {
     },
 
     // Tasks tagged with `ExclusiveTest` should be run exclusively.
-    concurrentRestrictions += Tags.exclusive(ExclusiveTest),
+    concurrentRestrictions in Global += Tags.exclusive(ExclusiveTest),
 
     // Version check changes sbt files, so nothing else can be done at that time
-    concurrentRestrictions += Tags.exclusive(VersionCheck),
+    concurrentRestrictions in Global += Tags.exclusive(VersionCheck),
 
-    useGpg := {
+    useGpg in Global := {
       val oldValue = (useGpg in Global).value
       !isTravisBuild.value || oldValue
-    }
-  )
+    })
 
   override def buildSettings =
     addCommandAlias("releaseSnapshot", "; project root; reload; checkLocalEvictions; publishSigned; bintrayRelease") ++
