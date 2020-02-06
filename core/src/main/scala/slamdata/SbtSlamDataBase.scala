@@ -171,6 +171,38 @@ abstract class SbtSlamDataBase extends AutoPlugin {
       scalacOptions in (Compile, doc) -= "-Xfatal-warnings",
     ) ++ headerLicenseSettings
 
+    lazy val commonPublishSettings = Seq(
+      licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
+
+      publishAsOSSProject := true,
+      performMavenCentralSync := false,
+
+      synchronizeWithSonatypeStaging := {},
+      releaseToMavenCentral := {},
+      autoAPIMappings := true,
+
+      developers := List(
+        Developer(
+          id = "slamdata",
+          name = "SlamData Inc.",
+          email = "contact@slamdata.com",
+          url = new URL("http://slamdata.com")
+        )),
+
+      pgpPublicRing in Global := {
+        if (isTravisBuild.value)
+          file("./project/local.pubring.pgp")
+        else
+          (pgpPublicRing in Global).value
+      },
+
+      pgpSecretRing in Global := {
+        if (isTravisBuild.value)
+          file("./project/local.secring.pgp")
+        else
+          (pgpSecretRing in Global).value
+      })
+
     implicit final class ProjectSyntax(val self: Project) {
       def evictToLocal(envar: String, subproject: String, test: Boolean = false): Project = {
         val eviction = sys.env.get(envar).map(file).filter(_.exists()) map { f =>
@@ -208,7 +240,6 @@ abstract class SbtSlamDataBase extends AutoPlugin {
     })
 
   override def buildSettings =
-    addCommandAlias("releaseSnapshot", "; project root; reload; checkLocalEvictions; publishSigned; bintrayRelease") ++
     Seq(
       organization := "com.slamdata",
 
@@ -285,6 +316,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
   override def projectSettings =
     AutomateHeaderPlugin.projectSettings ++
     commonBuildSettings ++
+    commonPublishSettings ++
     Seq(
       version := {
         import scala.sys.process._

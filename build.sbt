@@ -2,7 +2,6 @@ ThisBuild / organization := "com.slamdata"
 
 description := "Common build configuration for SBT projects"
 
-ThisBuild / sbtPlugin := true
 ThisBuild / sbtVersion := "1.3.8"
 
 lazy val root = project

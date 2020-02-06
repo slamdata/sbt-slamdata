@@ -32,47 +32,21 @@ object SbtSlamData extends SbtSlamDataBase {
 
   object autoImport extends autoImport {
 
-    lazy val commonPublishSettings = Seq(
-      licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
-
-      publishAsOSSProject := true,
-      performMavenCentralSync := false,
-
-      githubOwner := "slamdata",
-      githubRepository := { if (publishAsOSSProject.value) "public" else "private" },
-
-      synchronizeWithSonatypeStaging := {},
-      releaseToMavenCentral := {},
-      autoAPIMappings := true,
-
-      developers := List(
-        Developer(
-          id = "slamdata",
-          name = "SlamData Inc.",
-          email = "contact@slamdata.com",
-          url = new URL("http://slamdata.com")
-        )),
-
-      pgpPublicRing in Global := {
-        if (isTravisBuild.value)
-          file("./project/local.pubring.pgp")
-        else
-          (pgpPublicRing in Global).value
-      },
-
-      pgpSecretRing in Global := {
-        if (isTravisBuild.value)
-          file("./project/local.secring.pgp")
-        else
-          (pgpSecretRing in Global).value
-      })
-
     lazy val noPublishSettings = Seq(
       publish := {},
       publishLocal := {},
       publishArtifact := false,
       skip in publish := true)
   }
+
+  import autoImport._
+
+  override def projectSettings =
+    super.projectSettings ++
+    addCommandAlias("releaseSnapshot", "; project /; reload; checkLocalEvictions; +publishSigned") ++
+    Seq(
+      githubOwner := "slamdata",
+      githubRepository := { if (publishAsOSSProject.value) "public" else "private" })
 
   protected val autoImporter = autoImport
 }

@@ -18,54 +18,44 @@ package slamdata
 
 import sbt._, Keys._
 
-import com.typesafe.sbt.pgp.PgpKeys._
+import bintray.BintrayKeys._
 
 import sbttravisci.TravisCiPlugin.autoImport._
 
-import scala.collection.immutable.{List, Seq}
+import scala.Some
+import scala.collection.immutable.Seq
 
 object SbtSlamDataPlugin extends SbtSlamDataBase {
 
   object autoImport extends autoImport {
 
-    lazy val commonPublishSettings = Seq(
-      licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
-
-      publishAsOSSProject := true,
-      performMavenCentralSync := false,
-
-      synchronizeWithSonatypeStaging := {},
-      releaseToMavenCentral := {},
-      autoAPIMappings := true,
-
-      developers := List(
-        Developer(
-          id = "slamdata",
-          name = "SlamData Inc.",
-          email = "contact@slamdata.com",
-          url = new URL("http://slamdata.com")
-        )),
-
-      pgpPublicRing in Global := {
-        if (isTravisBuild.value)
-          file("./project/local.pubring.pgp")
-        else
-          (pgpPublicRing in Global).value
-      },
-
-      pgpSecretRing in Global := {
-        if (isTravisBuild.value)
-          file("./project/local.secring.pgp")
-        else
-          (pgpSecretRing in Global).value
-      })
-
     lazy val noPublishSettings = Seq(
       publish := {},
       publishLocal := {},
+      bintrayRelease := {},
       publishArtifact := false,
-      skip in publish := true)
+      skip in publish := true,
+      bintrayEnsureBintrayPackageExists := {})
   }
+
+  override def projectSettings =
+    super.projectSettings ++
+    addCommandAlias("releaseSnapshot", "; project /; reload; checkLocalEvictions; bintrayEnsurePackageExists; publishSigned; bintrayRelease") ++
+    Seq(
+      sbtPlugin := true,
+
+      bintrayOrganization := Some("slamdata-inc"),
+      bintrayRepository := "sbt-plugins",
+      bintrayReleaseOnPublish := false,
+
+      publishMavenStyle := false,
+
+      bintrayCredentialsFile := {
+        if (isTravisBuild.value)
+          file("./local.credentials.bintray")
+        else
+          bintrayCredentialsFile.value
+      })
 
   protected val autoImporter = autoImport
 }
