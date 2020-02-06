@@ -1,11 +1,30 @@
+/*
+ * Copyright 2014–2020 SlamData Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package slamdata
 
 import sbt._, Keys._
-import bintray.BintrayKeys._
+
 import com.typesafe.sbt.SbtPgp.autoImportImpl.PgpKeys
-import sbtrelease.ReleasePlugin.autoImport.{ releaseCrossBuild, releasePublishArtifactsAction }
+
+import sbtghpackages.GitHubPackagesKeys._
 import sbttravisci.TravisCiPlugin, TravisCiPlugin.autoImport._
-import scala.concurrent.duration._
+
+import scala.{Boolean, Unit}
+import scala.collection.immutable.{List, Seq}
 
 class Publish {
   lazy val checkHeaders = taskKey[Unit]("Fail the build if createHeaders is not up-to-date")
@@ -18,29 +37,25 @@ class Publish {
   lazy val performMavenCentralSync = settingKey[Boolean]("If true, then project will be sync'd from maven-public to Maven Central")
 
   lazy val commonPublishSettings = Seq(
-    licenses := Seq("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
+    licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
+
     publishAsOSSProject := true,
     performMavenCentralSync := false,
-    bintrayRepository := { if (publishAsOSSProject.value) "maven-public" else "maven-private" },
-    bintrayReleaseOnPublish := false,
-    synchronizeWithSonatypeStaging := mavenCentralRelatedTask(bintraySyncSonatypeStaging).value,
-    releaseToMavenCentral := mavenCentralRelatedTask(bintraySyncMavenCentral).value,
-    bintraySyncMavenCentralRetries := Seq(5.seconds, 1.minute, 5.minutes),
-    publishMavenStyle := true,
-    bintrayOrganization := Some("slamdata-inc"),
-    publishArtifact in Test := false,
-    pomIncludeRepository := { _ => false },
-    releaseCrossBuild := true,
+
+    githubOwner := "slamdata",
+    githubRepository := { if (publishAsOSSProject.value) "public" else "private" },
+
+    synchronizeWithSonatypeStaging := {},
+    releaseToMavenCentral := {},
     autoAPIMappings := true,
+
     developers := List(
       Developer(
         id = "slamdata",
         name = "SlamData Inc.",
         email = "contact@slamdata.com",
         url = new URL("http://slamdata.com")
-      )
-    ),
-    releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+      )),
 
     PgpKeys.pgpPublicRing in Global := {
       if (isTravisBuild.value)
@@ -54,31 +69,13 @@ class Publish {
         file("./project/local.secring.pgp")
       else
         (PgpKeys.pgpSecretRing in Global).value
-    },
-
-    bintrayCredentialsFile := {
-      if (isTravisBuild.value)
-        file("./local.credentials.bintray")
-      else
-        bintrayCredentialsFile.value
-    },
-
-    credentials ++= Seq(file("./local.credentials.sonatype")).filter(_.exists).map(Credentials(_))
-  )
+    })
 
   lazy val noPublishSettings = Seq(
     publish := {},
     publishLocal := {},
-    bintrayRelease := {},
     publishArtifact := false,
-    skip in publish := true,
-    bintrayEnsureBintrayPackageExists := {}
-  )
-
-  private def mavenCentralRelatedTask(task: TaskKey[Unit]): Def.Initialize[Task[Unit]] = Def.taskDyn {
-    if (performMavenCentralSync.value) Def.task(task.value) else Def.task(())
-  }
-
+    skip in publish := true)
 }
 
 object Publish extends Publish

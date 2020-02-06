@@ -1,27 +1,47 @@
+/*
+ * Copyright 2014–2020 SlamData Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package slamdata
 
 import sbt._, Keys._
 
-import java.io.File
-import java.nio.file.attribute.PosixFilePermission, PosixFilePermission.OWNER_EXECUTE
-import java.nio.file.Files
-import scala.collection.JavaConverters._
-import scala.util.{Failure, Success, Try}
-
-import bintray.{BintrayKeys, BintrayPlugin}, BintrayKeys._
 import com.typesafe.sbt.SbtPgp
 import com.typesafe.sbt.pgp.PgpKeys._
-import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.{headerCreate, headerLicense, HeaderLicense}
+
+import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
+import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
+
+import sbtghpackages.GitHubPackagesPlugin
 import sbttravisci.TravisCiPlugin, TravisCiPlugin.autoImport._
 
-// Inspired by sbt-catalysts
+import scala.{sys, Boolean, None, Some, StringContext, Unit}
+import scala.collection.immutable.{Set, Seq}
+import scala.collection.JavaConverters._
+
+import java.io.File
+import java.lang.{String, System}
+import java.nio.file.attribute.PosixFilePermission, PosixFilePermission.OWNER_EXECUTE
+import java.nio.file.Files
 
 object SbtSlamData extends AutoPlugin {
   private var foundLocalEvictions: Set[(String, String)] = Set()
 
   override def requires =
     plugins.JvmPlugin &&
-    BintrayPlugin &&
+    GitHubPackagesPlugin &&
     TravisCiPlugin &&
     SbtPgp
 
@@ -169,8 +189,8 @@ object SbtSlamData extends AutoPlugin {
 
     implicit final class ProjectSyntax(val self: Project) {
       def evictToLocal(envar: String, subproject: String, test: Boolean = false): Project = {
-        val eviction = Option(System.getenv(envar)).map(file).filter(_.exists()) map { f =>
-          foundLocalEvictions += (envar -> subproject)
+        val eviction = sys.env.get(envar).map(file).filter(_.exists()) map { f =>
+          foundLocalEvictions += ((envar, subproject))
 
           val ref = ProjectRef(f, subproject)
           self.dependsOn(if (test) ref % "test->test;compile->compile" else ref)
@@ -277,22 +297,25 @@ object SbtSlamData extends AutoPlugin {
   private def transferScripts(baseDir: File, srcs: String*) =
     srcs.foreach(src => transfer(src, baseDir / "scripts" / src, Set(OWNER_EXECUTE)))
 
-  override def projectSettings = commonBuildSettings ++ commonPublishSettings ++ Seq(
-    version := {
-      import scala.sys.process._
+  override def projectSettings =
+    AutomateHeaderPlugin.projectSettings ++
+    commonBuildSettings ++
+    commonPublishSettings ++
+    Seq(
+      version := {
+        import scala.sys.process._
 
-      val currentVersion = version.value
-      if (!isTravisBuild.value)
-        currentVersion + "-" + "git rev-parse HEAD".!!.substring(0, 7)
-      else
-        currentVersion
-    },
-    conflictManager := {
-      val currentManager = conflictManager.value
-      if (isTravisBuild.value)
-        ConflictManager.strict.withOrganization("com.slamdata")
-      else
-        currentManager
-    }
-  )
+        val currentVersion = version.value
+        if (!isTravisBuild.value)
+          currentVersion + "-" + "git rev-parse HEAD".!!.substring(0, 7)
+        else
+          currentVersion
+      },
+      conflictManager := {
+        val currentManager = conflictManager.value
+        if (isTravisBuild.value)
+          ConflictManager.strict.withOrganization("com.slamdata")
+        else
+          currentManager
+      })
 }
