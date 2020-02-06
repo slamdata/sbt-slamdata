@@ -38,6 +38,8 @@ object SbtSlamDataPlugin extends SbtSlamDataBase {
       bintrayEnsureBintrayPackageExists := {})
   }
 
+  import autoImport._
+
   override def projectSettings =
     super.projectSettings ++
     addCommandAlias("releaseSnapshot", "; project /; reload; checkLocalEvictions; bintrayEnsureBintrayPackageExists; publishSigned; bintrayRelease") ++
@@ -55,6 +57,11 @@ object SbtSlamDataPlugin extends SbtSlamDataBase {
           file("./local.credentials.bintray")
         else
           bintrayCredentialsFile.value
+      },
+
+      transferPublishAndTagResources := {
+        transferToBaseDir((ThisBuild / baseDirectory).value, "credentials.bintray.enc")
+        transferPublishAndTagResources.value
       })
 
   protected val autoImporter = autoImport

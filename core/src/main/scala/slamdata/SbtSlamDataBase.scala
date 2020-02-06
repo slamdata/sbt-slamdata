@@ -262,7 +262,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
       },
 
       transferPublishAndTagResources := {
-        val baseDir = (baseDirectory in ThisBuild).value
+        val baseDir = (ThisBuild / baseDirectory).value
 
         transferScripts(
           baseDir,
@@ -275,9 +275,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
           baseDir,
           "pubring.pgp.enc",
           "secring.pgp.enc",
-          "pgppassphrase.sbt.enc",
-          "credentials.bintray.enc",
-          "credentials.sonatype.enc")
+          "pgppassphrase.sbt.enc")
       },
 
       transferCommonResources := {
@@ -307,10 +305,10 @@ abstract class SbtSlamDataBase extends AutoPlugin {
     }
   }
 
-  private def transferToBaseDir(baseDir: File, srcs: String*) =
+  protected def transferToBaseDir(baseDir: File, srcs: String*) =
     srcs.foreach(src => transfer(src, baseDir / src))
 
-  private def transferScripts(baseDir: File, srcs: String*) =
+  protected def transferScripts(baseDir: File, srcs: String*) =
     srcs.foreach(src => transfer(src, baseDir / "scripts" / src, Set(OWNER_EXECUTE)))
 
   override def projectSettings =

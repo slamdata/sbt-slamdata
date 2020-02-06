@@ -18,13 +18,9 @@ package slamdata
 
 import sbt._, Keys._
 
-import com.typesafe.sbt.pgp.PgpKeys._
-
-import sbttravisci.TravisCiPlugin.autoImport._
-
 import sbtghpackages.{GitHubPackagesKeys, GitHubPackagesPlugin}, GitHubPackagesKeys._
 
-import scala.collection.immutable.{List, Seq}
+import scala.collection.immutable.Seq
 
 object SbtSlamData extends SbtSlamDataBase {
 
