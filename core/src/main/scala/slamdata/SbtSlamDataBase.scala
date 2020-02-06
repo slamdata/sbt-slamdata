@@ -24,10 +24,9 @@ import com.typesafe.sbt.pgp.PgpKeys._
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 
-import sbtghpackages.GitHubPackagesPlugin
 import sbttravisci.TravisCiPlugin, TravisCiPlugin.autoImport._
 
-import scala.{sys, Boolean, None, Some, StringContext, Unit}
+import scala.{sys, Boolean, None, Some, StringContext}
 import scala.collection.immutable.{Set, Seq}
 import scala.collection.JavaConverters._
 
@@ -36,32 +35,17 @@ import java.lang.{String, System}
 import java.nio.file.attribute.PosixFilePermission, PosixFilePermission.OWNER_EXECUTE
 import java.nio.file.Files
 
-object SbtSlamData extends AutoPlugin {
+abstract class SbtSlamDataBase extends AutoPlugin {
   private var foundLocalEvictions: Set[(String, String)] = Set()
 
   override def requires =
     plugins.JvmPlugin &&
-    GitHubPackagesPlugin &&
     TravisCiPlugin &&
     SbtPgp
 
   override def trigger = allRequirements
 
-  object autoImport extends Base
-
-  class Base extends Publish {
-    lazy val checkLocalEvictions = taskKey[Unit](
-      "Checks for the existence of local evictions in the build and fails if they are found")
-
-    lazy val transferPublishAndTagResources = taskKey[Unit](
-      "Transfers publishAndTag script and associated resources")
-
-    lazy val transferCommonResources = taskKey[Unit](
-      "Transfers common resources not used in publication")
-
-    lazy val scalacStrictMode = settingKey[Boolean](
-      "Include stricter warnings and WartRemover settings")
-
+  class autoImport extends SbtSlamDataKeys {
     val BothScopes = "test->test;compile->compile"
 
     // Exclusive execution settings
@@ -201,7 +185,8 @@ object SbtSlamData extends AutoPlugin {
     }
   }
 
-  import autoImport._
+  protected val autoImporter: autoImport
+  import autoImporter._
 
   override def globalSettings = Seq(
     concurrentRestrictions in Global := {
@@ -300,7 +285,6 @@ object SbtSlamData extends AutoPlugin {
   override def projectSettings =
     AutomateHeaderPlugin.projectSettings ++
     commonBuildSettings ++
-    commonPublishSettings ++
     Seq(
       version := {
         import scala.sys.process._

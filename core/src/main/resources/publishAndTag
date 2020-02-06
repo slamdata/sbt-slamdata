@@ -28,7 +28,13 @@ if [[
 
   # Only publish and tag on first travis job
   if [[ "${TRAVIS_JOB_NUMBER##*.}" == "1" ]]; then
-    "$SBT" +publishSigned
+
+    # plugins are published to bintray, while artifacts are published to github
+    if $SBT 'show sbtPlugin' | grep true; then
+      "$SBT" bintrayEnsurePackageExists publishSigned bintrayRelease
+    else
+      "$SBT" +publishSigned
+    fi
 
     HEAD_SHA=$(git rev-parse HEAD)
     TAG=v$VERSION
