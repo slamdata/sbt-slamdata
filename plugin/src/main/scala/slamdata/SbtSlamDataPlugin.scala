@@ -18,7 +18,7 @@ package slamdata
 
 import sbt._, Keys._
 
-import bintray.BintrayKeys._
+import bintray.{BintrayKeys, BintrayPlugin}, BintrayKeys._
 
 import sbttravisci.TravisCiPlugin.autoImport._
 
@@ -26,6 +26,8 @@ import scala.Some
 import scala.collection.immutable.Seq
 
 object SbtSlamDataPlugin extends SbtSlamDataBase {
+
+  override def requires = super.requires && BintrayPlugin
 
   object autoImport extends autoImport {
 
