@@ -18,11 +18,10 @@ package slamdata
 
 import sbt._, Keys._
 
-import com.typesafe.sbt.SbtPgp
-import com.typesafe.sbt.pgp.PgpKeys._
-
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
+
+import _root_.io.crashbox.gpg.SbtGpg
 
 import sbttravisci.TravisCiPlugin, TravisCiPlugin.autoImport._
 
@@ -41,7 +40,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
   override def requires =
     plugins.JvmPlugin &&
     TravisCiPlugin &&
-    SbtPgp
+    SbtGpg
 
   override def trigger = allRequirements
 
@@ -187,21 +186,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
           name = "SlamData Inc.",
           email = "contact@slamdata.com",
           url = new URL("http://slamdata.com")
-        )),
-
-      pgpPublicRing in Global := {
-        if (isTravisBuild.value)
-          file("./project/local.pubring.pgp")
-        else
-          (pgpPublicRing in Global).value
-      },
-
-      pgpSecretRing in Global := {
-        if (isTravisBuild.value)
-          file("./project/local.secring.pgp")
-        else
-          (pgpSecretRing in Global).value
-      })
+        )))
 
     implicit final class ProjectSyntax(val self: Project) {
       def evictToLocal(envar: String, subproject: String, test: Boolean = false): Project = {
@@ -232,12 +217,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
     },
 
     // Tasks tagged with `ExclusiveTest` should be run exclusively.
-    concurrentRestrictions in Global += Tags.exclusive(ExclusiveTest),
-
-    useGpg in Global := {
-      val oldValue = (useGpg in Global).value
-      !isTravisBuild.value || oldValue
-    })
+    concurrentRestrictions in Global += Tags.exclusive(ExclusiveTest))
 
   override def buildSettings =
     Seq(
@@ -273,9 +253,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
 
         transferToBaseDir(
           baseDir,
-          "core/pubring.pgp.enc",
-          "core/secring.pgp.enc",
-          "core/pgppassphrase.sbt.enc")
+          "core/signing-secret.pgp.enc")
       },
 
       transferCommonResources := {

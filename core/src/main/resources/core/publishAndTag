@@ -22,18 +22,16 @@ if [[
   fi
   set -u
 
-  openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in secring.pgp.enc          -out project/local.secring.pgp  -d
-  openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in pubring.pgp.enc          -out project/local.pubring.pgp  -d
-  openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in pgppassphrase.sbt.enc    -out local.pgppassphrase.sbt    -d
+  openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in signing-secret.pgp.enc | gpg --import
 
   # Only publish and tag on first travis job
   if [[ "${TRAVIS_JOB_NUMBER##*.}" == "1" ]]; then
 
     # plugins are published to bintray, while artifacts are published to github
     if $SBT 'show sbtPlugin' | grep true; then
-      "$SBT" bintrayEnsurePackageExists publishSigned bintrayRelease
+      "$SBT" bintrayEnsurePackageExists publish bintrayRelease
     else
-      "$SBT" +publishSigned
+      "$SBT" +publish
     fi
 
     HEAD_SHA=$(git rev-parse HEAD)

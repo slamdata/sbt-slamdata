@@ -39,7 +39,7 @@ object SbtSlamData extends SbtSlamDataBase {
 
   override def projectSettings =
     super.projectSettings ++
-    addCommandAlias("releaseSnapshot", "; project /; reload; checkLocalEvictions; +publishSigned") ++
+    addCommandAlias("releaseSnapshot", "; project /; reload; checkLocalEvictions; +publish") ++
     Seq(
       githubOwner := "slamdata",
       githubRepository := { if (publishAsOSSProject.value) "public" else "private" })
