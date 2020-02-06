@@ -2,10 +2,10 @@
 
 require 'octokit'
 
-if ENV['TRAVIS_PULL_REQUEST'] == "false"
+if ENV['GITHUB_ACTION'] == "false"
   STDERR.puts 'Cannot close the current pull request on not-a-pull-request'
   exit -1
 end
 
-client = Octokit::Client.new :access_token => ENV['GITHUB_TOKEN']
-client.close_pull_request ENV['TRAVIS_REPO_SLUG'], ENV['TRAVIS_PULL_REQUEST']
+client = Octokit::Client.new :bearer_token => ENV['GITHUB_TOKEN']
+client.close_pull_request ENV['REPO_SLUG'], ENV['PR_NUMBER']
