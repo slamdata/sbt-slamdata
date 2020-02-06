@@ -2,7 +2,7 @@
 
 require 'octokit'
 
-if ENV['GITHUB_ACTION'] == "false"
+if ENV['GITHUB_ACTIONS'] == "false"
   STDERR.puts 'Cannot close the current pull request on not-a-pull-request'
   exit -1
 end
