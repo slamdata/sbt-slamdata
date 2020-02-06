@@ -40,7 +40,7 @@ object SbtSlamDataPlugin extends SbtSlamDataBase {
 
   override def projectSettings =
     super.projectSettings ++
-    addCommandAlias("releaseSnapshot", "; project /; reload; checkLocalEvictions; bintrayEnsurePackageExists; publishSigned; bintrayRelease") ++
+    addCommandAlias("releaseSnapshot", "; project /; reload; checkLocalEvictions; bintrayEnsureBintrayPackageExists; publishSigned; bintrayRelease") ++
     Seq(
       sbtPlugin := true,
 
