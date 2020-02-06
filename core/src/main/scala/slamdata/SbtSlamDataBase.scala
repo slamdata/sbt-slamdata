@@ -266,16 +266,16 @@ abstract class SbtSlamDataBase extends AutoPlugin {
 
         transferScripts(
           baseDir,
-          "publishAndTag",
-          "bumpDependentProject",
-          "readVersion",
-          "isRevision")
+          "core/publishAndTag",
+          "core/bumpDependentProject",
+          "core/readVersion",
+          "core/isRevision")
 
         transferToBaseDir(
           baseDir,
-          "pubring.pgp.enc",
-          "secring.pgp.enc",
-          "pgppassphrase.sbt.enc")
+          "core/pubring.pgp.enc",
+          "core/secring.pgp.enc",
+          "core/pgppassphrase.sbt.enc")
       },
 
       transferCommonResources := {
@@ -283,11 +283,11 @@ abstract class SbtSlamDataBase extends AutoPlugin {
 
         transferScripts(
           baseDir,
-          "checkAndAutoMerge",
-          "commonSetup",
-          "discordTravisPost",
-          "listLabels",
-          "closePR")
+          "core/checkAndAutoMerge",
+          "core/commonSetup",
+          "core/discordTravisPost",
+          "core/listLabels",
+          "core/closePR")
       },
     )
 

@@ -62,7 +62,7 @@ object SbtSlamDataPlugin extends SbtSlamDataBase {
       },
 
       transferPublishAndTagResources := {
-        transferToBaseDir((ThisBuild / baseDirectory).value, "credentials.bintray.enc")
+        transferToBaseDir((ThisBuild / baseDirectory).value, "plugin/credentials.bintray.enc")
         transferPublishAndTagResources.value
       })
 
