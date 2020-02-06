@@ -7,3 +7,4 @@ gem install octokit
 
 git config --global user.email "bot@slamdata.com"
 git config --global user.name "SlamData Bot"
+git config github.actor slamdata-bot
