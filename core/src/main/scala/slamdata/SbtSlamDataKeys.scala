@@ -16,7 +16,7 @@
 
 package slamdata
 
-import sbt._, Keys._
+import sbt._
 
 import scala.{Boolean, Unit}
 
