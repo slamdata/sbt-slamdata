@@ -22,7 +22,7 @@ if [[
   fi
   set -u
 
-  openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in signing-secret.pgp.enc | gpg --import
+  openssl aes-256-cbc -pass env:ENCRYPTION_PASSWORD -in signing-secret.pgp.enc -d | gpg --import
 
   # Only publish and tag on first travis job
   if [[ "${TRAVIS_JOB_NUMBER##*.}" == "1" ]]; then

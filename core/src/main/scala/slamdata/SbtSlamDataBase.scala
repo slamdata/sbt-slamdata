@@ -17,6 +17,7 @@
 package slamdata
 
 import sbt._, Keys._
+import sbt.complete.DefaultParsers.fileParser
 
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
@@ -25,9 +26,12 @@ import _root_.io.crashbox.gpg.SbtGpg
 
 import sbttravisci.TravisCiPlugin, TravisCiPlugin.autoImport._
 
+import org.yaml.snakeyaml.Yaml
+
 import scala.{sys, Boolean, None, Some, StringContext}
 import scala.collection.immutable.{Set, Seq}
 import scala.collection.JavaConverters._
+import scala.sys.process._
 
 import java.io.File
 import java.lang.{String, System}
@@ -268,7 +272,62 @@ abstract class SbtSlamDataBase extends AutoPlugin {
           "core/listLabels",
           "core/closePR")
       },
-    )
+
+      secrets := Seq(baseDirectory.value / ".secrets.yml.enc"),
+
+      exportSecretsForActions := {
+        val pwd = sys.env("ENCRYPTION_PASSWORD")
+        if (pwd == null) {
+          sys.error("$ENCRYPTION_PASSWORD not set")
+        }
+
+        val yaml = new Yaml
+
+        secrets.value foreach { file =>
+          val decrypted = s"""openssl aes-256-cbc -pass env:ENCRYPTION_PASSWORD -in ${file.getAbsolutePath()} -d""".!!
+          val parsed = yaml.load[Any](decrypted)
+            .asInstanceOf[java.util.Map[String, String]]
+            .asScala
+            .toMap   // yolo
+
+          parsed foreach {
+            case (key, value) =>
+              println(s"::add-mask::$value")
+              println(s"::set-env name=$key::$value")
+          }
+        }
+      },
+
+      decryptSecret / aggregate := false,
+      decryptSecret := {
+        val file = fileParser(baseDirectory.value).parsed
+        val log = streams.value.log
+        val plogger = ProcessLogger(log.info(_), log.error(_))
+        val ecode =
+          s"""openssl aes-256-cbc -pass env:ENCRYPTION_PASSWORD -in ${file} -out ${file.getPath().replaceAll("\\.enc$", "")} -d""".!(plogger)
+
+        if (ecode != 0) {
+          sys.error(s"openssl exited with status $ecode")
+        } else {
+          file.delete()
+        }
+      },
+
+      encryptSecret / aggregate := false,
+      encryptSecret := {
+        val file = fileParser(baseDirectory.value).parsed
+        val log = streams.value.log
+        val plogger = ProcessLogger(log.info(_), log.error(_))
+
+        val ecode =
+          s"""openssl aes-256-cbc -pass env:ENCRYPTION_PASSWORD -in ${file} -out ${file}.enc""".!(plogger)
+
+        if (ecode != 0) {
+          sys.error(s"openssl exited with status $ecode")
+        } else {
+          file.delete()
+        }
+      })
 
   private def isWindows(): Boolean = System.getProperty("os.name").startsWith("Windows")
 
