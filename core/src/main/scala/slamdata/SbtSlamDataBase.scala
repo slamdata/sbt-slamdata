@@ -17,6 +17,7 @@
 package slamdata
 
 import sbt._, Keys._
+import sbt.Def.Initialize
 
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
@@ -168,6 +169,8 @@ abstract class SbtSlamDataBase extends AutoPlugin {
         "-Ywarn-unused-import"),
 
       scalacOptions in (Compile, doc) -= "-Xfatal-warnings",
+
+      unsafeEvictionsCheck := unsafeEvictionsCheckTask.value,
     ) ++ headerLicenseSettings
 
     lazy val commonPublishSettings = Seq(
@@ -217,7 +220,15 @@ abstract class SbtSlamDataBase extends AutoPlugin {
     },
 
     // Tasks tagged with `ExclusiveTest` should be run exclusively.
-    concurrentRestrictions in Global += Tags.exclusive(ExclusiveTest))
+    concurrentRestrictions in Global += Tags.exclusive(ExclusiveTest),
+
+    // UnsafeEvictions default settings
+    unsafeEvictionsFatal := false,
+    unsafeEvictionsConf := Seq.empty,
+    evictionWarningOptions in unsafeEvictionsCheck := EvictionWarningOptions.full
+      .withWarnEvictionSummary(true)
+      .withInfoAllEvictions(false),
+  )
 
   override def buildSettings =
     Seq(
@@ -269,6 +280,16 @@ abstract class SbtSlamDataBase extends AutoPlugin {
       },
     )
 
+  def unsafeEvictionsCheckTask: Initialize[Task[UpdateReport]] = Def.task {
+    val module = ivyModule.value
+    val isFatal = unsafeEvictionsFatal.value
+    val conf = unsafeEvictionsConf.value
+    val ewo = (evictionWarningOptions in unsafeEvictionsCheck).value
+    val report = (updateFull tag(Tags.Update, Tags.Network)).value
+    val log = streams.value.log
+    slamdata.UnsafeEvictions.check(module, isFatal, conf, ewo, report, log)
+  }
+
   private def isWindows(): Boolean = System.getProperty("os.name").startsWith("Windows")
 
   private def transfer(src: String, dst: File, permissions: Set[PosixFilePermission] = Set()) = {
@@ -303,11 +324,14 @@ abstract class SbtSlamDataBase extends AutoPlugin {
         else
           currentVersion
       },
-      conflictManager := {
-        val currentManager = conflictManager.value
-        if (isTravisBuild.value)
-          ConflictManager.strict.withOrganization("com.slamdata")
-        else
-          currentManager
-      })
+
+      unsafeEvictionsFatal := isTravisBuild.value,
+      unsafeEvictionsConf += (UnsafeEvictions.IsOrg("com.slamdata") -> VersionNumber.SecondSegment),
+      update := {
+        unsafeEvictionsCheck.value
+        update.value
+      }
+    )
+
 }
+
