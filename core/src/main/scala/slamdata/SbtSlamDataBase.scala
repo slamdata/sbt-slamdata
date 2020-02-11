@@ -220,6 +220,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
     concurrentRestrictions in Global += Tags.exclusive(ExclusiveTest))
 
   override def buildSettings =
+    addCommandAlias("ci", "; checkHeaders; test") ++
     Seq(
       organization := "com.slamdata",
 
