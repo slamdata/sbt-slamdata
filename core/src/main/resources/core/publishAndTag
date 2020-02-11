@@ -5,66 +5,49 @@ IFS=$'\n\t'        # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 
 VERSION=$(scripts/readVersion)
 
-REPO_SLUG="$1"
+# REPO_SLUG is a CI env var
 PROJECT=$(sed 's/.*\///' <<< "$REPO_SLUG")
 
-# only publish and tag on ${REPO_SLUG}#master and ${REPO_SLUG}#backport/*
-if [[
-    "$TRAVIS_PULL_REQUEST" == "false"                                &&
-    ("$TRAVIS_BRANCH" == "master" || "$TRAVIS_BRANCH" == backport/*) &&
-    "$TRAVIS_REPO_SLUG"    == "$REPO_SLUG"
-  ]] ; then
-
-  set +u
-  if [ -z "$SBT" ]; then
-    echo "\$SBT variable is unset or empty. Please set it to be the path to a local copy of sbt before running this script."
-    exit 1
-  fi
-  set -u
-
-  openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in signing-secret.pgp.enc | gpg --import
-
-  # Only publish and tag on first travis job
-  if [[ "${TRAVIS_JOB_NUMBER##*.}" == "1" ]]; then
-
-    # plugins are published to bintray, while artifacts are published to github
-    if $SBT 'show sbtPlugin' | grep true; then
-      "$SBT" bintrayEnsurePackageExists publish bintrayRelease
-    else
-      "$SBT" +publish
-    fi
-
-    HEAD_SHA=$(git rev-parse HEAD)
-    TAG=v$VERSION
-    TAG_MSG="$PROJECT $VERSION"
-
-    TAGS_RESP=$(curl -X POST -d '{
-        "tag": "'"$TAG"'",
-        "object": "'"$HEAD_SHA"'",
-        "message": "'"$TAG_MSG"'",
-        "tagger": {
-          "name": "Travis CI",
-          "email": "builds@travis-ci.com"
-        },
-        "type": "commit"
-      }'                                             \
-      -H "Content-Type: application/json"            \
-      -H "Authorization: token $GITHUB_ACCESS_TOKEN" \
-      "https://api.github.com/repos/${TRAVIS_REPO_SLUG}/git/tags")
-
-    TAG_SHA=$(echo "$TAGS_RESP" | jq .sha)
-
-    curl -X POST -d '{
-        "ref": "refs/tags/'"$TAG"'",
-        "sha": '"$TAG_SHA"'
-      }'                                             \
-      -H "Content-Type: application/json"            \
-      -H "Authorization: token $GITHUB_ACCESS_TOKEN" \
-      "https://api.github.com/repos/${TRAVIS_REPO_SLUG}/git/refs"
-  else
-    echo 'Travis not running on the primary job; skipping publication and tagging'
-  fi
-else
-  echo "Travis not running in ${REPO_SLUG}#master or ${REPO_SLUG}#backport/*, so skipping publishAndTag"
+set +u
+if [ -z "$SBT" ]; then
+  echo "\$SBT variable is unset or empty. Please set it to be the path to a local copy of sbt before running this script."
+  exit 1
 fi
-# vim: set ts=2 sw=2 tw=100 et :
+set -u
+
+openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in signing-secret.pgp.enc | gpg --import
+
+# plugins are published to bintray, while artifacts are published to github
+if $SBT 'show sbtPlugin' | grep true; then
+  "$SBT" bintrayEnsurePackageExists publish bintrayRelease
+else
+  "$SBT" +publish
+fi
+
+HEAD_SHA=$(git rev-parse HEAD)
+TAG=v$VERSION
+TAG_MSG="$PROJECT $VERSION"
+
+TAGS_RESP=$(curl -X POST -d '{
+    "tag": "'"$TAG"'",
+    "object": "'"$HEAD_SHA"'",
+    "message": "'"$TAG_MSG"'",
+    "tagger": {
+      "name": "CI",
+      "email": "builds@travis-ci.com"
+    },
+    "type": "commit"
+  }'                                             \
+  -H "Content-Type: application/json"            \
+  -H "Authorization: token $GITHUB_ACCESS_TOKEN" \
+  "https://api.github.com/repos/${REPO_SLUG}/git/tags")
+
+TAG_SHA=$(echo "$TAGS_RESP" | jq .sha)
+
+curl -X POST -d '{
+   "ref": "refs/tags/'"$TAG"'",
+    "sha": '"$TAG_SHA"'
+  }'                                             \
+  -H "Content-Type: application/json"            \
+  -H "Authorization: token $GITHUB_ACCESS_TOKEN" \
+  "https://api.github.com/repos/${REPO_SLUG}/git/refs"
