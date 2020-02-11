@@ -25,21 +25,21 @@ final class UnsafeEvictionsExceptions(val prefix: String, val evicteds: Seq[Evic
 object UnsafeEvictions {
   /** Performs logging and exception-throwing given report and configurations */
   def check(module: ModuleDescriptor,
-            isFatal: Boolean,
-            conf: Seq[(ModuleFilter, VersionNumberCompatibility)],
-            evictionWarningOptions: EvictionWarningOptions,
-            report: UpdateReport,
-            log: Logger): UpdateReport = {
+      isFatal: Boolean,
+      conf: Seq[(ModuleFilter, VersionNumberCompatibility)],
+      evictionWarningOptions: EvictionWarningOptions,
+      report: UpdateReport,
+      log: Logger): UpdateReport = {
     import sbt.util.ShowLines._
 
     val ewo = evictionWarningOptions.withGuessCompatible(guessCompatible(conf))
     val ew = EvictionWarning(module, ewo, report)
-    ew.lines foreach { log.error(_) }
+    ew.lines.foreach(log.error(_))
     if (isFatal && ew.binaryIncompatibleEvictionExists) {
       val evictions = ew.scalaEvictions ++ ew.directEvictions ++ ew.transitiveEvictions
       // FIXME: doesn't work!
       // throw new UnsafeEvictionsException("Unsafe evictions detected", evictions)
-      throw new Error("Unsafe evictions detected: " +
+      sys.error("Unsafe evictions detected: " +
         evictions.map(e => s"${e.organization}:${e.name}").mkString(", "))
     }
     report
@@ -51,10 +51,11 @@ object UnsafeEvictions {
     case (m1, Some(m2), _) =>
       confs
         .find(conf => conf._1(m1))
-        .map { case (_, vnc) =>
-          val r1 = VersionNumber(m1.revision)
-          val r2 = VersionNumber(m2.revision)
-          vnc.isCompatible(r1, r2)
+        .map {
+          case (_, vnc) =>
+            val r1 = VersionNumber(m1.revision)
+            val r2 = VersionNumber(m2.revision)
+            vnc.isCompatible(r1, r2)
         }
         .getOrElse(true)
     case _ => true
