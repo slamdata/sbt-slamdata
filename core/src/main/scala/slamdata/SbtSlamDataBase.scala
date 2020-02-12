@@ -18,6 +18,7 @@ package slamdata
 
 import sbt._, Keys._
 import sbt.complete.DefaultParsers.fileParser
+import sbt.internal.util.ManagedLogger
 
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
@@ -246,65 +247,79 @@ abstract class SbtSlamDataBase extends AutoPlugin {
         }
       },
 
+      transferPublishAndTagResources / aggregate := false,
       transferPublishAndTagResources := {
         val baseDir = (ThisBuild / baseDirectory).value
 
         transferScripts(
+          "core",
           baseDir,
-          "core/publishAndTag",
-          "core/bumpDependentProject",
-          "core/readVersion",
-          "core/isRevision")
+          "publishAndTag",
+          "bumpDependentProject",
+          "readVersion",
+          "isRevision")
 
         transferToBaseDir(
+          "core",
           baseDir,
-          "core/signing-secret.pgp.enc")
+          "signing-secret.pgp.enc")
       },
 
+      transferCommonResources / aggregate := false,
       transferCommonResources := {
-        val baseDir = (baseDirectory in ThisBuild).value
+        val baseDir = (ThisBuild / baseDirectory).value
 
         transferScripts(
+          "core",
           baseDir,
-          "core/checkAndAutoMerge",
-          "core/commonSetup",
-          "core/discordTravisPost",
-          "core/listLabels",
-          "core/closePR")
+          "checkAndAutoMerge",
+          "commonSetup",
+          "discordTravisPost",
+          "listLabels",
+          "closePR")
+
+        transferToBaseDir("core", baseDir, "common-secrets.yml.enc")
       },
 
-      secrets := Seq(baseDirectory.value / ".secrets.yml.enc"),
+      secrets := Seq(file("common-secrets.yml.enc")),
 
       exportSecretsForActions := {
-        val pwd = sys.env("ENCRYPTION_PASSWORD")
-        if (pwd == null) {
+        val log = streams.value.log
+        val plogger = ProcessLogger(log.info(_), log.error(_))
+
+        if (!sys.env.get("ENCRYPTION_PASSWORD").isDefined) {
           sys.error("$ENCRYPTION_PASSWORD not set")
         }
 
         val yaml = new Yaml
 
         secrets.value foreach { file =>
-          val decrypted = s"""openssl aes-256-cbc -pass env:ENCRYPTION_PASSWORD -in ${file.getAbsolutePath()} -d""".!!
-          val parsed = yaml.load[Any](decrypted)
-            .asInstanceOf[java.util.Map[String, String]]
-            .asScala
-            .toMap   // yolo
+          if (file.exists()) {
+            val decrypted = s"""openssl aes-256-cbc -pass env:ENCRYPTION_PASSWORD -in ${file} -d""" !! plogger
+            val parsed = yaml.load[Any](decrypted)
+              .asInstanceOf[java.util.Map[String, String]]
+              .asScala
+              .toMap   // yolo
 
-          parsed foreach {
-            case (key, value) =>
-              println(s"::add-mask::$value")
-              println(s"::set-env name=$key::$value")
+            parsed foreach {
+              case (key, value) =>
+                println(s"::add-mask::$value")
+                println(s"::set-env name=$key::$value")
+            }
           }
         }
       },
 
       decryptSecret / aggregate := false,
       decryptSecret := {
+        if (!sys.env.get("ENCRYPTION_PASSWORD").isDefined) {
+          sys.error("$ENCRYPTION_PASSWORD not set")
+        }
+
         val file = fileParser(baseDirectory.value).parsed
         val log = streams.value.log
-        val plogger = ProcessLogger(log.info(_), log.error(_))
         val ecode =
-          s"""openssl aes-256-cbc -pass env:ENCRYPTION_PASSWORD -in ${file} -out ${file.getPath().replaceAll("\\.enc$", "")} -d""".!(plogger)
+          runWithLogger(s"""openssl aes-256-cbc -pass env:ENCRYPTION_PASSWORD -in ${file} -out ${file.getPath().replaceAll("\\.enc$", "")} -d""", log)
 
         if (ecode != 0) {
           sys.error(s"openssl exited with status $ecode")
@@ -315,12 +330,14 @@ abstract class SbtSlamDataBase extends AutoPlugin {
 
       encryptSecret / aggregate := false,
       encryptSecret := {
+        if (!sys.env.get("ENCRYPTION_PASSWORD").isDefined) {
+          sys.error("$ENCRYPTION_PASSWORD not set")
+        }
+
         val file = fileParser(baseDirectory.value).parsed
         val log = streams.value.log
-        val plogger = ProcessLogger(log.info(_), log.error(_))
-
         val ecode =
-          s"""openssl aes-256-cbc -pass env:ENCRYPTION_PASSWORD -in ${file} -out ${file}.enc""".!(plogger)
+          runWithLogger(s"""openssl aes-256-cbc -pass env:ENCRYPTION_PASSWORD -in ${file} -out ${file}.enc""", log)
 
         if (ecode != 0) {
           sys.error(s"openssl exited with status $ecode")
@@ -329,11 +346,15 @@ abstract class SbtSlamDataBase extends AutoPlugin {
         }
       })
 
+  private def runWithLogger(command: String, log: ManagedLogger): Int = {
+    val plogger = ProcessLogger(log.info(_), log.error(_))
+    command ! plogger
+  }
+
   private def isWindows(): Boolean = System.getProperty("os.name").startsWith("Windows")
 
   private def transfer(src: String, dst: File, permissions: Set[PosixFilePermission] = Set()) = {
     val src2 = getClass.getClassLoader.getResourceAsStream(src)
-
     IO.transfer(src2, dst)
 
     if (!isWindows()) {
@@ -343,11 +364,11 @@ abstract class SbtSlamDataBase extends AutoPlugin {
     }
   }
 
-  protected def transferToBaseDir(baseDir: File, srcs: String*) =
-    srcs.foreach(src => transfer(src, baseDir / src))
+  protected def transferToBaseDir(prefix: String, baseDir: File, srcs: String*) =
+    srcs.foreach(src => transfer(prefix + "/" + src, baseDir / src))
 
-  protected def transferScripts(baseDir: File, srcs: String*) =
-    srcs.foreach(src => transfer(src, baseDir / "scripts" / src, Set(OWNER_EXECUTE)))
+  protected def transferScripts(prefix: String, baseDir: File, srcs: String*) =
+    srcs.foreach(src => transfer(prefix + "/" + src, baseDir / "scripts" / src, Set(OWNER_EXECUTE)))
 
   override def projectSettings =
     AutomateHeaderPlugin.projectSettings ++

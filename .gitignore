@@ -4,6 +4,8 @@ tags
 *.swp
 *.swo
 
+/core/src/main/resources/core/common-secrets.yml
+
 # sbt-slamdata common resources
 /scripts/bumpDependentProject
 /scripts/checkAndAutoMerge
@@ -15,4 +17,5 @@ tags
 /scripts/closePR
 /scripts/publishAndTag
 /scripts/readVersion
-/signing-secret.gpg.enc
+/signing-secret.pgp.enc
+/common-secrets.yml.enc
