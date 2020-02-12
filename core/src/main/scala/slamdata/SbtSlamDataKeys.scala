@@ -17,6 +17,7 @@
 package slamdata
 
 import sbt._
+import sbt.librarymanagement.ModuleFilter
 
 import scala.{Boolean, Unit}
 
@@ -42,6 +43,12 @@ trait SbtSlamDataKeys {
   lazy val synchronizeWithSonatypeStaging = taskKey[Unit]("Synchronize artifacts published on bintray sonatype staging repository")
   lazy val releaseToMavenCentral = taskKey[Unit]("Close the sonatype staging repository")
   lazy val performMavenCentralSync = settingKey[Boolean]("If true, then project will be sync'd from maven-public to Maven Central")
+
+  /* Unsafe eviction check */
+  lazy val unsafeEvictionsConf = settingKey[Seq[(ModuleFilter, VersionNumberCompatibility)]]("List of evictions deemed unsafe")
+  lazy val unsafeEvictionsFatal = settingKey[Boolean]("Unsafe evictions are fatal if true")
+  lazy val unsafeEvictionsCheck = taskKey[UpdateReport]("Resolves and optionally retrieves dependencies, producing a report whilst checking for unsafe evictions.")
+
 }
 
 object SbtSlamDataKeys extends SbtSlamDataKeys
