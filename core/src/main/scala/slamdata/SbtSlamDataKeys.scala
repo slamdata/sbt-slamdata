@@ -23,6 +23,18 @@ import scala.{Boolean, Unit}
 
 trait SbtSlamDataKeys {
 
+  lazy val exportSecretsForActions = taskKey[Unit](
+    "Uses the GitHub Actions echo syntax and the openssl command to decrypt and export all configured secrets")
+
+  lazy val decryptSecret = inputKey[Unit](
+    "Delegates to openssl to decrypt a given file that was encrypted using $ENCRYPTION_PASSWORD. The name should correspond to the *decrypted* file, while the encrypted file is suffixed with `.enc`. Paths are relative to the base of the project")
+
+  lazy val encryptSecret = inputKey[Unit](
+    "Delegates to openssl to encrypt a given file using $ENCRYPTION_PASSWORD. The name should correspond to the *decrypted* file, while the encrypted file is suffixed with `.enc`. Paths are relative to the base of the project")
+
+  lazy val secrets = settingKey[Seq[File]](
+    "The set of all encrypted yaml files whos values are to be decrypted and exported")
+
   lazy val checkLocalEvictions = taskKey[Unit](
     "Checks for the existence of local evictions in the build and fails if they are found")
 
