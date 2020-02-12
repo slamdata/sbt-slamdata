@@ -281,13 +281,14 @@ abstract class SbtSlamDataBase extends AutoPlugin {
     )
 
   def unsafeEvictionsCheckTask: Initialize[Task[UpdateReport]] = Def.task {
+    val currentProject = thisProjectRef.value.project
     val module = ivyModule.value
     val isFatal = unsafeEvictionsFatal.value
     val conf = unsafeEvictionsConf.value
     val ewo = (evictionWarningOptions in unsafeEvictionsCheck).value
     val report = (updateFull tag(Tags.Update, Tags.Network)).value
     val log = streams.value.log
-    slamdata.UnsafeEvictions.check(module, isFatal, conf, ewo, report, log)
+    slamdata.UnsafeEvictions.check(currentProject, module, isFatal, conf, ewo, report, log)
   }
 
   private def isWindows(): Boolean = System.getProperty("os.name").startsWith("Windows")
