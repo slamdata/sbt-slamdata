@@ -16,7 +16,7 @@
 
 package slamdata
 
-import sbt._, Keys._
+import sbt._
 import librarymanagement.{ModuleFilter, ModuleDescriptor, ScalaModuleInfo}
 
 final class UnsafeEvictionsExceptions(val prefix: String, val evicteds: Seq[EvictionPair])
