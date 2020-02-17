@@ -39,7 +39,7 @@ TAGS_RESP=$(curl -X POST -d '{
     "type": "commit"
   }'                                             \
   -H "Content-Type: application/json"            \
-  -H "Authorization: token $GITHUB_ACCESS_TOKEN" \
+  -H "Authorization: token $GITHUB_TOKEN" \
   "https://api.github.com/repos/${REPO_SLUG}/git/tags")
 
 TAG_SHA=$(echo "$TAGS_RESP" | jq .sha)
@@ -49,5 +49,5 @@ curl -X POST -d '{
     "sha": '"$TAG_SHA"'
   }'                                             \
   -H "Content-Type: application/json"            \
-  -H "Authorization: token $GITHUB_ACCESS_TOKEN" \
+  -H "Authorization: token $GITHUB_TOKEN" \
   "https://api.github.com/repos/${REPO_SLUG}/git/refs"
