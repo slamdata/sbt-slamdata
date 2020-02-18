@@ -245,12 +245,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
 
       resolvers := Seq(
         Resolver.sonatypeRepo("releases"),
-        Resolver.sonatypeRepo("snapshots"),
-        "JBoss repository" at "https://repository.jboss.org/nexus/content/repositories/",
-        Resolver.bintrayRepo("scalaz", "releases"),
-        Resolver.bintrayRepo("non", "maven"),
-        Resolver.bintrayRepo("slamdata-inc", "maven-public"),
-        Resolver.bintrayRepo("slamdata-inc", "maven-private")),
+        Resolver.bintrayRepo("slamdata-inc", "maven-public")),
 
       checkLocalEvictions := {
         if (!foundLocalEvictions.isEmpty) {
@@ -412,6 +407,13 @@ abstract class SbtSlamDataBase extends AutoPlugin {
       update := {
         unsafeEvictionsCheck.value
         update.value
+      },
+
+      resolvers ++= {
+        if (publishAsOSSProject.value)
+          Seq(Resolver.bintrayRepo("slamdata-inc", "maven-private"))
+        else
+          Seq.empty
       }
     )
 
