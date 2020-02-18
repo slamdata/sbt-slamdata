@@ -18,7 +18,7 @@ package slamdata
 
 import sbt._, Keys._
 
-import sbtghpackages.{GitHubPackagesKeys, GitHubPackagesPlugin}, GitHubPackagesKeys._
+import sbtghpackages.GitHubPackagesPlugin
 
 import scala.collection.immutable.Seq
 
@@ -36,13 +36,23 @@ object SbtSlamData extends SbtSlamDataBase {
   }
 
   import autoImport._
+  import GitHubPackagesPlugin.autoImport._
 
   override def projectSettings =
     super.projectSettings ++
     addCommandAlias("releaseSnapshot", "; project /; reload; checkLocalEvictions; +publish") ++
     Seq(
       githubOwner := "slamdata",
-      githubRepository := { if (publishAsOSSProject.value) "public" else "private" })
+      githubRepository := { if (publishAsOSSProject.value) "public" else "private" },
+
+      resolvers += Resolver.githubPackages("slamdata", "public"),
+
+      resolvers ++= {
+        if (publishAsOSSProject.value)
+          Seq(Resolver.githubPackages("slamdata", "private"))
+        else
+          Seq.empty
+      })
 
   protected val autoImporter = autoImport
 }
