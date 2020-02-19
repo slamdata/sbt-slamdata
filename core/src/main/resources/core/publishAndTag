@@ -15,7 +15,7 @@ if [ -z "$SBT" ]; then
 fi
 set -u
 
-openssl aes-256-cbc -pass pass:"$ENCRYPTION_PASSWORD" -in signing-secret.pgp.enc | gpg --import
+openssl aes-256-cbc -md sha1 -pass pass:"$ENCRYPTION_PASSWORD" -in signing-secret.pgp.enc | gpg --import
 
 # plugins are published to bintray, while artifacts are published to github
 if $SBT 'show sbtPlugin' | grep true; then

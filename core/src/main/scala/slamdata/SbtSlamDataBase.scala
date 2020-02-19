@@ -325,7 +325,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
         val file = fileParser(baseDirectory.value).parsed
         val log = streams.value.log
         val ecode =
-          runWithLogger(s"""openssl aes-256-cbc -pass env:ENCRYPTION_PASSWORD -in ${file} -out ${file.getPath().replaceAll("\\.enc$", "")} -d""", log)
+          runWithLogger(s"""openssl aes-256-cbc -pass env:ENCRYPTION_PASSWORD -md sha1 -in ${file} -out ${file.getPath().replaceAll("\\.enc$", "")} -d""", log)
 
         if (ecode != 0) {
           sys.error(s"openssl exited with status $ecode")
@@ -343,7 +343,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
         val file = fileParser(baseDirectory.value).parsed
         val log = streams.value.log
         val ecode =
-          runWithLogger(s"""openssl aes-256-cbc -pass env:ENCRYPTION_PASSWORD -in ${file} -out ${file}.enc""", log)
+          runWithLogger(s"""openssl aes-256-cbc -pass env:ENCRYPTION_PASSWORD -md sha1 -in ${file} -out ${file}.enc""", log)
 
         if (ecode != 0) {
           sys.error(s"openssl exited with status $ecode")
