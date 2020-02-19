@@ -44,6 +44,7 @@ object SbtSlamData extends SbtSlamDataBase {
     Seq(
       githubOwner := "slamdata",
       githubRepository := { if (publishAsOSSProject.value) "public" else "private" },
+      githubTokenSource := TokenSource.Environment("GITHUB_TOKEN") || githubTokenSource.value,
 
       resolvers += Resolver.githubPackages("slamdata", "public"),
 
