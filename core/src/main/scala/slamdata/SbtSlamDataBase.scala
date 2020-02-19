@@ -301,7 +301,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
 
         secrets.value foreach { file =>
           if (file.exists()) {
-            val decrypted = s"""openssl aes-256-cbc -pass env:ENCRYPTION_PASSWORD -in ${file} -d""" !! plogger
+            val decrypted = s"""openssl aes-256-cbc -pass env:ENCRYPTION_PASSWORD -md sha1 -in ${file} -d""" !! plogger
             val parsed = yaml.load[Any](decrypted)
               .asInstanceOf[java.util.Map[String, String]]
               .asScala
