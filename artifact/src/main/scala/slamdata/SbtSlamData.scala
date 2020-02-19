@@ -48,7 +48,7 @@ object SbtSlamData extends SbtSlamDataBase {
       resolvers += Resolver.githubPackages("slamdata", "public"),
 
       resolvers ++= {
-        if (publishAsOSSProject.value)
+        if (!publishAsOSSProject.value)
           Seq(Resolver.githubPackages("slamdata", "private"))
         else
           Seq.empty
