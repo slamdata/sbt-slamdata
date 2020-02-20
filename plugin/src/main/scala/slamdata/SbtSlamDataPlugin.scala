@@ -20,7 +20,7 @@ import sbt._, Keys._
 
 import bintray.{BintrayKeys, BintrayPlugin}, BintrayKeys._
 
-import sbttravisci.TravisCiPlugin.autoImport._
+import sbtghactions.GitHubActionsPlugin.autoImport._
 
 import scala.Some
 import scala.collection.immutable.Seq
@@ -55,7 +55,7 @@ object SbtSlamDataPlugin extends SbtSlamDataBase {
       publishMavenStyle := false,
 
       bintrayCredentialsFile := {
-        if (isTravisBuild.value)
+        if (githubIsWorkflowBuild.value)
           file("./local.credentials.bintray")
         else
           bintrayCredentialsFile.value

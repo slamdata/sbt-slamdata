@@ -26,7 +26,7 @@ import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 
 import _root_.io.crashbox.gpg.SbtGpg
 
-import sbttravisci.TravisCiPlugin, TravisCiPlugin.autoImport._
+import sbtghactions.GitHubActionsPlugin, GitHubActionsPlugin.autoImport._
 
 import org.yaml.snakeyaml.Yaml
 
@@ -45,7 +45,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
 
   override def requires =
     plugins.JvmPlugin &&
-    TravisCiPlugin &&
+    GitHubActionsPlugin &&
     SbtGpg
 
   override def trigger = allRequirements
@@ -163,7 +163,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
       },
 
       scalacOptions ++= {
-        if (isTravisBuild.value && scalacStrictMode.value)
+        if (githubIsWorkflowBuild.value && scalacStrictMode.value)
           Seq("-Xfatal-warnings")
         else
           Seq()
@@ -217,7 +217,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
     concurrentRestrictions in Global := {
       val oldValue = (concurrentRestrictions in Global).value
       val maxTasks = 2
-      if (isTravisBuild.value)
+      if (githubIsWorkflowBuild.value)
       // Recreate the default rules with the task limit hard-coded:
         Seq(Tags.limitAll(maxTasks), Tags.limit(Tags.ForkedTestGroup, 1))
       else
@@ -396,13 +396,13 @@ abstract class SbtSlamDataBase extends AutoPlugin {
         import scala.sys.process._
 
         val currentVersion = version.value
-        if (!isTravisBuild.value)
+        if (!githubIsWorkflowBuild.value)
           currentVersion + "-" + "git rev-parse HEAD".!!.substring(0, 7)
         else
           currentVersion
       },
 
-      unsafeEvictionsFatal := isTravisBuild.value,
+      unsafeEvictionsFatal := githubIsWorkflowBuild.value,
       unsafeEvictionsConf += (UnsafeEvictions.IsOrg("com.slamdata") -> VersionNumber.SecondSegment),
       update := {
         unsafeEvictionsCheck.value
