@@ -47,6 +47,7 @@ object SbtSlamData extends SbtSlamDataBase {
       githubTokenSource := TokenSource.Environment("GITHUB_TOKEN") || githubTokenSource.value,
 
       resolvers += Resolver.githubPackages("slamdata", "public"),
+      resolvers += Resolver.githubPackages("slamdata", "tectonic"),   // don't ask...
 
       resolvers ++= {
         if (!publishAsOSSProject.value)
