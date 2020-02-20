@@ -7,7 +7,7 @@ TARGET_OWNER=$1
 TARGET_REPO=$2
 BUMP_VERSION_FUNC=$3
 
-PROJECT=$(sed 's/.*\///' <<< "$TRAVIS_REPO_SLUG")
+PROJECT=$(sed 's/.*\///' <<< "$REPO_SLUG")
 VERSION=$(scripts/readVersion)
 
 echo "Attempting to autobump $TARGET_OWNER/$TARGET_REPO..."
