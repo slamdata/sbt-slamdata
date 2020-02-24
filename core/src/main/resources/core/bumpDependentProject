@@ -52,11 +52,10 @@ fi)
 
 BUMP_BODY=$"
 Automated bump of **$PROJECT** version to **$VERSION**. If this is a revision change, it will automatically merge itself upon successful build.
-
-## Changes
-
-$(git log --merges --format='# %B' v$OLD_VERSION..HEAD -- $VERSION_FILE | sed 's/^#/###/g')
 "
+# Changes
+#$(git log --merges --format='# %B' v$OLD_VERSION..HEAD -- $VERSION_FILE | sed 's/^#/###/g')
+
 
 cd $CLONE_DIR
 
