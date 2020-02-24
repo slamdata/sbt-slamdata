@@ -7,7 +7,7 @@ TARGET_OWNER=$1
 TARGET_REPO=$2
 BUMP_VERSION_FUNC=$3
 
-PROJECT=$(sed 's/.*\///' <<< "$TRAVIS_REPO_SLUG")
+PROJECT=$(sed 's/.*\///' <<< "$REPO_SLUG")
 VERSION=$(scripts/readVersion)
 
 echo "Attempting to autobump $TARGET_OWNER/$TARGET_REPO..."
@@ -52,11 +52,10 @@ fi)
 
 BUMP_BODY=$"
 Automated bump of **$PROJECT** version to **$VERSION**. If this is a revision change, it will automatically merge itself upon successful build.
-
-## Changes
-
-$(git log --merges --format='# %B' v$OLD_VERSION..HEAD -- $VERSION_FILE | sed 's/^#/###/g')
 "
+# Changes
+#$(git log --merges --format='# %B' v$OLD_VERSION..HEAD -- $VERSION_FILE | sed 's/^#/###/g')
+
 
 cd $CLONE_DIR
 
