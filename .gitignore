@@ -3,3 +3,19 @@ target/
 tags
 *.swp
 *.swo
+
+/core/src/main/resources/core/common-secrets.yml
+
+# sbt-slamdata common resources
+/scripts/bumpDependentProject
+/scripts/checkAndAutoMerge
+/scripts/commonSetup
+/credentials.bintray.enc
+/scripts/discordTravisPost
+/scripts/isRevision
+/scripts/listLabels
+/scripts/closePR
+/scripts/publishAndTag
+/scripts/readVersion
+/signing-secret.pgp.enc
+/common-secrets.yml.enc
