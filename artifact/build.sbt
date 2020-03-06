@@ -1,1 +1,1 @@
-addSbtPlugin("com.codecommit" % "sbt-github-packages" % "0.3.2")
+addSbtPlugin("com.codecommit" % "sbt-github-packages" % "0.4.0")
