@@ -25,3 +25,6 @@ lazy val plugin = project.in(file("plugin"))
 
 ThisBuild / organizationName := "SlamData Inc."
 ThisBuild / organizationHomepage := Some(url("https://slamdata.com"))
+ThisBuild / homepage := Some(url("https://github.com/slamdata/sbt-slamdata"))
+ThisBuild / scmInfo := Some(ScmInfo(homepage.value.get, "scm:git@github.com:slamdata/sbt-slamdata.git"))
+
