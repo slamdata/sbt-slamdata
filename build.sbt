@@ -1,26 +1,27 @@
-import sbtslamdata.BuildInfo
-import slamdata.Publish
+ThisBuild / organization := "com.slamdata"
 
-lazy val root = (project in file("."))
-  .settings(
-    name         := "sbt-slamdata",
-    organization := "com.slamdata",
-    description  := "Common build configuration for SBT projects",
-    sbtPlugin    := true,
-    sbtVersion in Global := "1.3.0")
-  .settings(
-    addSbtPlugin("com.jsuereth"      % "sbt-pgp"         % BuildInfo.sbtPgpVersion),
-    addSbtPlugin("com.github.gseitz" % "sbt-release"     % BuildInfo.sbtReleaseVersion),
-    addSbtPlugin("org.foundweekends" % "sbt-bintray"     % BuildInfo.sbtBintrayVersion),
-    addSbtPlugin("com.dwijnand"      % "sbt-travisci"    % BuildInfo.sbtTravisCiVersion),
-    addSbtPlugin("de.heikoseeberger" % "sbt-header"      % "5.3.1"))
-  .settings(publishSettings)
+description := "Common build configuration for SBT projects"
 
-lazy val publishSettings = Publish.commonPublishSettings ++ Seq(
-  organizationName := "SlamData Inc.",
-  organizationHomepage := Some(url("http://slamdata.com")),
-  homepage := Some(url("https://github.com/slamdata/sbt-slamdata")),
-  scmInfo := Some(
-    ScmInfo(
-      url("https://github.com/slamdata/sbt-slamdata"),
-      "scm:git@github.com:slamdata/sbt-slamdata.git")))
+ThisBuild / sbtVersion := "1.3.8"
+ThisBuild / scalaVersion := "2.12.10"
+
+lazy val root = project
+  .in(file("."))
+  .aggregate(core, artifact, plugin)
+  .settings(noPublishSettings)
+
+lazy val core = project.in(file("core"))
+  .settings(
+    name := "sbt-slamdata-core",
+    scalacStrictMode := false)
+
+lazy val artifact = project.in(file("artifact"))
+  .dependsOn(core)
+  .settings(name := "sbt-slamdata")
+
+lazy val plugin = project.in(file("plugin"))
+  .dependsOn(core)
+  .settings(name := "sbt-slamdata-plugin")
+
+ThisBuild / organizationName := "SlamData Inc."
+ThisBuild / organizationHomepage := Some(url("https://slamdata.com"))

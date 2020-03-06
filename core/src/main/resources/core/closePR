@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+
+require 'octokit'
+
+if ENV['GITHUB_ACTIONS'] == "false"
+  STDERR.puts 'Cannot close the current pull request on not-a-pull-request'
+  exit -1
+end
+
+client = Octokit::Client.new :bearer_token => ENV['GITHUB_TOKEN']
+client.close_pull_request ENV['REPO_SLUG'], ENV['PR_NUMBER']

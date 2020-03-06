@@ -1,0 +1,74 @@
+name: build
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+env:
+  SBT: ./sbt
+  JDK: 1.8
+  REPO_SLUG: ${{ github.repository }}
+  ENCRYPTION_PASSWORD: ${{ secrets.ENCRYPTION_PASSWORD }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        scala: [2.12.10]
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v2
+      - name: Set up JDK ${{ env.JDK }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ env.JDK }}
+      - name: Setup Git Actor
+        run: git config github.actor slamdata-bot
+      - name: Compile and test
+        run: $SBT ++${{ matrix.scala }} ci
+      - name: Upload working directory
+        uses: actions/upload-artifact@v1
+        with:
+          name: working-dir
+          path: .
+
+  publish-and-tag:
+    name: Publish and Tag
+    if: github.event_name != 'pull_request' && (contains(github.ref, 'backport/v.*') || contains(github.ref, 'master'))
+    needs: [build]
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v2
+      - name: Download working directory
+        uses: actions/download-artifact@v1
+        with:
+          name: working-dir
+      - name: Setup Git Actor
+        run: git config github.actor slamdata-bot
+      - name: Set up JDK ${{ env.JDK }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ env.JDK }}
+      - name: Install ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.6'
+      - name: Create scripts dir
+        run: mkdir ./scripts
+      - name: Transfer Common Resources
+        run: $SBT transferCommonResources
+      - name: Transfer Publish Resources
+        run: $SBT transferPublishAndTagResources
+      - name: Export common secrets
+        run: $SBT exportSecretsForActions
+      - name: Common setup
+        run: ./scripts/commonSetup
+      - name: Publish and Tag
+        run: ./scripts/publishAndTag 'slamdata/sbt-slamdata'
