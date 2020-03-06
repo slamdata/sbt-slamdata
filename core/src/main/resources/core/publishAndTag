@@ -19,7 +19,7 @@ openssl aes-256-cbc -md sha1 -pass env:ENCRYPTION_PASSWORD -in signing-secret.pg
 
 # plugins are published to bintray, while artifacts are published to github
 if $SBT 'show sbtPlugin' | grep true; then
-  "$SBT" bintrayEnsurePackageExists publish bintrayRelease
+  "$SBT" bintrayEnsureBintrayPackageExists publish bintrayRelease
 else
   "$SBT" +publish
 fi
