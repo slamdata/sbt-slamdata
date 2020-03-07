@@ -52,17 +52,15 @@ object SbtSlamDataPlugin extends SbtSlamDataBase {
       bintrayRepository := "sbt-plugins",
       bintrayReleaseOnPublish := false,
 
-      publishMavenStyle := false,
+      publishMavenStyle := false)
 
-      bintrayCredentialsFile := {
-        if (githubIsWorkflowBuild.value)
-          file("./local.credentials.bintray")
-        else
-          bintrayCredentialsFile.value
-      },
+  override def buildSettings =
+    super.buildSettings ++
+    Seq(
+      secrets += file("credentials.yml.enc"),
 
       transferPublishAndTagResources := {
-        transferToBaseDir("plugin", (ThisBuild / baseDirectory).value, "credentials.bintray.enc")
+        transferToBaseDir("plugin", (ThisBuild / baseDirectory).value, "credentials.yml.enc")
         transferPublishAndTagResources.value
       })
 
