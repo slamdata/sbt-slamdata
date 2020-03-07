@@ -20,8 +20,6 @@ import sbt._, Keys._
 
 import bintray.{BintrayKeys, BintrayPlugin}, BintrayKeys._
 
-import sbtghactions.GitHubActionsPlugin.autoImport._
-
 import scala.Some
 import scala.collection.immutable.Seq
 
