@@ -22,7 +22,7 @@ import bintray.{BintrayKeys, BintrayPlugin}, BintrayKeys._
 
 import sbtghactions.GitHubActionsPlugin, GitHubActionsPlugin.autoImport._
 
-import scala.Some
+import scala.{sys, Some}
 import scala.collection.immutable.Seq
 
 object SbtSlamDataPlugin extends SbtSlamDataBase {
