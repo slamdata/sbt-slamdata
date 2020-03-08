@@ -20,6 +20,8 @@ import sbt._, Keys._
 
 import bintray.{BintrayKeys, BintrayPlugin}, BintrayKeys._
 
+import sbtghactions.GitHubActionsPlugin, GitHubActionsPlugin.autoImport._
+
 import scala.Some
 import scala.collection.immutable.Seq
 
@@ -56,6 +58,19 @@ object SbtSlamDataPlugin extends SbtSlamDataBase {
     super.buildSettings ++
     Seq(
       secrets += file("credentials.yml.enc"),
+
+      // it's annoying that sbt-bintray doesn't do this for us
+      bintray / credentials ++= {
+        if (githubIsWorkflowBuild.value)
+          Seq(
+            Credentials(
+              "Bintray API Realm",
+              "api.bintray.com",
+              sys.env("BINTRAY_USER"),
+              sys.env("BINTRAY_PASS")))
+        else
+          Seq()
+      },
 
       transferPublishAndTagResources := {
         transferToBaseDir("plugin", (ThisBuild / baseDirectory).value, "credentials.yml.enc")
