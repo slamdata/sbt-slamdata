@@ -20,9 +20,9 @@ import sbt._, Keys._
 
 import bintray.{BintrayKeys, BintrayPlugin}, BintrayKeys._
 
-import sbtghactions.GitHubActionsPlugin.autoImport._
+import sbtghactions.GitHubActionsPlugin, GitHubActionsPlugin.autoImport._
 
-import scala.Some
+import scala.{sys, Some}
 import scala.collection.immutable.Seq
 
 object SbtSlamDataPlugin extends SbtSlamDataBase {
@@ -54,15 +54,27 @@ object SbtSlamDataPlugin extends SbtSlamDataBase {
 
       publishMavenStyle := false,
 
-      bintrayCredentialsFile := {
-        if (githubIsWorkflowBuild.value)
-          file("./local.credentials.bintray")
-        else
-          bintrayCredentialsFile.value
-      },
+      // it's annoying that sbt-bintray doesn't do this for us
+      credentials ++= {
+        if (githubIsWorkflowBuild.value) {
+          val creds = for {
+            user <- sys.env.get("BINTRAY_USER")
+            pass <- sys.env.get("BINTRAY_PASS")
+          } yield Credentials("Bintray API Realm", "api.bintray.com", user, pass)
+
+          creds.toSeq
+        } else {
+          Seq()
+        }
+      })
+
+  override def buildSettings =
+    super.buildSettings ++
+    Seq(
+      secrets += file("credentials.yml.enc"),
 
       transferPublishAndTagResources := {
-        transferToBaseDir("plugin", (ThisBuild / baseDirectory).value, "credentials.bintray.enc")
+        transferToBaseDir("plugin", (ThisBuild / baseDirectory).value, "credentials.yml.enc")
         transferPublishAndTagResources.value
       })
 

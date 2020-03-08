@@ -30,6 +30,8 @@ import sbtghactions.GitHubActionsPlugin, GitHubActionsPlugin.autoImport._
 
 import org.yaml.snakeyaml.Yaml
 
+import sbttrickle.TricklePlugin, TricklePlugin.autoImport._
+
 import scala.{sys, Boolean, None, Some, StringContext}
 import scala.collection.immutable.{Set, Seq}
 import scala.collection.JavaConverters._
@@ -46,7 +48,8 @@ abstract class SbtSlamDataBase extends AutoPlugin {
   override def requires =
     plugins.JvmPlugin &&
     GitHubActionsPlugin &&
-    SbtGpg
+    SbtGpg &&
+    TricklePlugin
 
   override def trigger = allRequirements
 
@@ -250,6 +253,19 @@ abstract class SbtSlamDataBase extends AutoPlugin {
       checkLocalEvictions := {
         if (!foundLocalEvictions.isEmpty) {
           sys.error(s"found active local evictions: ${foundLocalEvictions.mkString("[", ", ", "]")}; publication is disabled")
+        }
+      },
+
+      trickleDbURI := "https://github.com/slamdata/build-metadata.git",
+      trickleRepositoryName := Project.normalizeModuleID(uri(trickleRepositoryURI.value).getPath.substring(1)),
+      trickleRepositoryURI := scmInfo.value.map(_.browseUrl).orElse(homepage.value).getOrElse {
+        sys.error("Set 'ThisBuild / trickleRepositoryURI' to the github page of this project")
+      }.toString,
+      trickleGitConfig := {
+        import sbttrickle.git.GitConfig
+        (sys.env.get("GITHUB_ACTOR"), sys.env.get("GITHUB_TOKEN")) match {
+          case (Some(user), Some(password)) => GitConfig(trickleDbURI.value, user, password)
+          case _                            => GitConfig(trickleDbURI.value)
         }
       },
 
