@@ -56,15 +56,16 @@ object SbtSlamDataPlugin extends SbtSlamDataBase {
 
       // it's annoying that sbt-bintray doesn't do this for us
       credentials ++= {
-        if (githubIsWorkflowBuild.value)
-          Seq(
-            Credentials(
-              "Bintray API Realm",
-              "api.bintray.com",
-              sys.env("BINTRAY_USER"),
-              sys.env("BINTRAY_PASS")))
-        else
+        if (githubIsWorkflowBuild.value) {
+          val creds = for {
+            user <- sys.env.get("BINTRAY_USER")
+            pass <- sys.env.get("BINTRAY_PASS")
+          } yield Credentials("Bintray API Realm", "api.bintray.com", user, pass)
+
+          creds.toSeq
+        } else {
           Seq()
+        }
       })
 
   override def buildSettings =
