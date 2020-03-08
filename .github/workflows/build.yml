@@ -70,5 +70,7 @@ jobs:
         run: $SBT exportSecretsForActions
       - name: Common setup
         run: ./scripts/commonSetup
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v1
       - name: Publish and Tag
         run: ./scripts/publishAndTag 'slamdata/sbt-slamdata'
