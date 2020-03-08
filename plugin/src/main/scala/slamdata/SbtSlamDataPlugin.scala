@@ -52,15 +52,10 @@ object SbtSlamDataPlugin extends SbtSlamDataBase {
       bintrayRepository := "sbt-plugins",
       bintrayReleaseOnPublish := false,
 
-      publishMavenStyle := false)
-
-  override def buildSettings =
-    super.buildSettings ++
-    Seq(
-      secrets += file("credentials.yml.enc"),
+      publishMavenStyle := false,
 
       // it's annoying that sbt-bintray doesn't do this for us
-      bintray / credentials ++= {
+      credentials ++= {
         if (githubIsWorkflowBuild.value)
           Seq(
             Credentials(
@@ -70,7 +65,12 @@ object SbtSlamDataPlugin extends SbtSlamDataBase {
               sys.env("BINTRAY_PASS")))
         else
           Seq()
-      },
+      })
+
+  override def buildSettings =
+    super.buildSettings ++
+    Seq(
+      secrets += file("credentials.yml.enc"),
 
       transferPublishAndTagResources := {
         transferToBaseDir("plugin", (ThisBuild / baseDirectory).value, "credentials.yml.enc")
