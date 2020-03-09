@@ -376,8 +376,8 @@ abstract class SbtSlamDataBase extends AutoPlugin {
       // TODO make this suck less
       trickleGithubIsAutobumpPullRequest := { pr =>
         pr.title == "Applied dependency updates" &&
-          pr.base.map(_.ref == "master").getOrElse(false) &&
-          pr.head.map(_.ref.startsWith("trickle/")).getOrElse(false)
+          pr.base.exists(_.ref == "master") &&
+          pr.head.exists(_.ref.startsWith("trickle/"))
       })
 
   private def runWithLogger(command: String, log: Logger): Int = {
@@ -480,12 +480,12 @@ abstract class SbtSlamDataBase extends AutoPlugin {
           var isRevision = true
           var isBreaking = false
           repo.updates foreach {
-            case ModuleUpdateData(_, _, newRevision, repo, _) =>
-              val vOld = VersionNumber(managed(repo))
+            case ModuleUpdateData(_, _, newRevision, dependencyRepo, _) =>
+              val vOld = VersionNumber(managed(dependencyRepo))
               val vNew = VersionNumber(newRevision)
               isRevision &&= VersionNumber.SecondSegment.isCompatible(vOld, vNew)
               isBreaking ||= !VersionNumber.SemVer.isCompatible(vOld, vNew)
-              managed(repo) = newRevision
+              managed(dependencyRepo) = newRevision
           }
 
           val change =
