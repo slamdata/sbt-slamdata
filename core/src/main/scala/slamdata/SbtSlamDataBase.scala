@@ -520,7 +520,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
 
           def assignedLabelList(pr: Int) = Github[IO](sys.env.get("GITHUB_TOKEN"))
             .issues
-            .addLabels(owner, repoSlug, pr, List("version", change))
+            .addLabels(owner, repoSlug, pr, List(s"version: $change"))
 
           val createAndLabelPr = for {
             response <- createPrF
