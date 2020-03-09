@@ -19,7 +19,6 @@ package slamdata
 import sbt._, Keys._
 import sbt.Def.Initialize
 import sbt.complete.DefaultParsers.fileParser
-import sbt.internal.util.ManagedLogger
 
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
@@ -31,6 +30,7 @@ import sbtghactions.GitHubActionsPlugin, GitHubActionsPlugin.autoImport._
 import org.yaml.snakeyaml.Yaml
 
 import sbttrickle.TricklePlugin, TricklePlugin.autoImport._
+import sbttrickle.metadata.{ModuleUpdateData, OutdatedRepository}
 
 import scala.{sys, Boolean, None, Some, StringContext}
 import scala.collection.immutable.{Set, Seq}
@@ -43,6 +43,9 @@ import java.nio.file.attribute.PosixFilePermission, PosixFilePermission.OWNER_EX
 import java.nio.file.Files
 
 abstract class SbtSlamDataBase extends AutoPlugin {
+
+  private val VersionsPath = ".versions.json"
+
   private var foundLocalEvictions: Set[(String, String)] = Set()
 
   override def requires =
@@ -366,9 +369,18 @@ abstract class SbtSlamDataBase extends AutoPlugin {
         } else {
           file.delete()
         }
+      },
+
+      managedVersions := ManagedVersions((baseDirectory.value / VersionsPath).toPath),
+
+      // TODO make this suck less
+      trickleGithubIsAutobumpPullRequest := { pr =>
+        pr.title == "Applied dependency updates" &&
+          pr.base.map(_.ref == "master").getOrElse(false) &&
+          pr.head.map(_.ref.startsWith("trickle/")).getOrElse(false)
       })
 
-  private def runWithLogger(command: String, log: ManagedLogger): Int = {
+  private def runWithLogger(command: String, log: Logger): Int = {
     val plogger = ProcessLogger(log.info(_), log.error(_))
     command ! plogger
   }
@@ -426,12 +438,72 @@ abstract class SbtSlamDataBase extends AutoPlugin {
       },
 
       resolvers ++= {
-        if (publishAsOSSProject.value)
+        if (!publishAsOSSProject.value)
           Seq(Resolver.bintrayRepo("slamdata-inc", "maven-private"))
         else
           Seq.empty
-      }
-    )
+      },
 
+      trickleCreatePullRequest := {
+        val prior = trickleCreatePullRequest.value
+        val log = sLog.value
+
+        { (repo: OutdatedRepository) =>
+          import cats.effect.{ContextShift, IO}
+
+          import github4s.Github
+          import github4s.domain.NewPullRequestData
+
+          import java.nio.file.Files
+          import scala.concurrent.ExecutionContext.Implicits.global
+
+          implicit val cs: ContextShift[IO] = IO.contextShift(global)
+
+          prior(repo)
+
+          val authenticated = {
+            val uri = new URI(repo.url)
+            s"${uri.getScheme}://${sys.env("GITHUB_ACTOR")}:${sys.env("GITHUB_TOKEN")}@${uri.getHost}${uri.getPath}"
+          }
+
+          val dir = Files.createTempDirectory("sbt-slamdata")
+          if (runWithLogger(s"git clone --depth 1 $authenticated ${dir.toFile.getPath}", log) != 0) {
+            sys.error("git-clone exited with error")
+          }
+
+          val branchName = s"trickle/${System.currentTimeMillis}"
+          if (runWithLogger(s"cd $dir; git checkout -b $branchName", log) != 0) {
+            sys.error("git-checkout exited with error")
+          }
+
+          val managed = ManagedVersions(dir.resolve(VersionsPath))
+          repo.updates foreach {
+            case ModuleUpdateData(_, _, newRevision, repo, _) =>
+              managed(repo) = newRevision
+          }
+
+          if (runWithLogger(s"cd $dir; git commit -a -m 'Applied dependency updates' --author='SlamData Bot <bot@slamdata.com>'", log) != 0) {
+            sys.error("git-commit exited with error")
+          }
+
+          if (runWithLogger(s"cd $dir; git push origin $branchName", log) != 0) {
+            sys.error("git-push exited with error")
+          }
+
+          val createPrF = Github[IO](sys.env.get("GITHUB_TOKEN"))
+            .pullRequests
+            .createPullRequest(
+              "slamdata",
+              repo.repository,    // TODO
+              NewPullRequestData("Applied dependency updates", "This PR brought to you by sbt-trickle. Please do come again!"),   // TODO
+              branchName,
+              "master",
+              Some(true))
+
+          createPrF.unsafeRunSync.fold(
+            throw _,
+            r => log.info(r.toString))
+        }
+      })
 }
 
