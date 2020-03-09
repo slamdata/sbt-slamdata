@@ -381,8 +381,8 @@ abstract class SbtSlamDataBase extends AutoPlugin {
       // TODO make this suck less
       trickleGithubIsAutobumpPullRequest := { pr =>
         pr.title == "Applied dependency updates" &&
-          pr.base.map(_.ref == "master").getOrElse(false) &&
-          pr.head.map(_.ref.startsWith("trickle/")).getOrElse(false)
+          pr.base.exists(_.ref == "master") &&
+          pr.head.exists(_.ref.startsWith("trickle/"))
       })
 
   private def runWithLogger(command: String, log: Logger): Int = {
@@ -457,9 +457,9 @@ abstract class SbtSlamDataBase extends AutoPlugin {
           import cats.effect.{ContextShift, IO}
 
           import github4s.Github
+          import github4s.GithubResponses.GHResult
           import github4s.domain.NewPullRequestData
 
-          import java.nio.file.Files
           import scala.concurrent.ExecutionContext.Implicits.global
 
           implicit val cs: ContextShift[IO] = IO.contextShift(global)
@@ -482,10 +482,21 @@ abstract class SbtSlamDataBase extends AutoPlugin {
           }
 
           val managed = ManagedVersions(dir.resolve(VersionsPath))
+          var isRevision = true
+          var isBreaking = false
           repo.updates foreach {
-            case ModuleUpdateData(_, _, newRevision, repo, _) =>
-              managed(repo) = newRevision
+            case ModuleUpdateData(_, _, newRevision, dependencyRepo, _) =>
+              val vOld = VersionNumber(managed(dependencyRepo))
+              val vNew = VersionNumber(newRevision)
+              isRevision &&= VersionNumber.SecondSegment.isCompatible(vOld, vNew)
+              isBreaking ||= !VersionNumber.SemVer.isCompatible(vOld, vNew)
+              managed(dependencyRepo) = newRevision
           }
+
+          val change =
+            if (isRevision) "revision"
+            else if (isBreaking) "breaking"
+            else "feature"
 
           if (runWithLogger(s"cd $dir; git commit -a -m 'Applied dependency updates' --author='SlamData Bot <bot@slamdata.com>'", log) != 0) {
             sys.error("git-commit exited with error")
@@ -495,17 +506,30 @@ abstract class SbtSlamDataBase extends AutoPlugin {
             sys.error("git-push exited with error")
           }
 
+          val (owner, repoSlug) = repo.ownerAndRepository.getOrElse(sys.error(s"invalid url ${repo.url}"))
+
           val createPrF = Github[IO](sys.env.get("GITHUB_TOKEN"))
             .pullRequests
             .createPullRequest(
-              "slamdata",
-              repo.repository,    // TODO
+              owner,
+              repoSlug,
               NewPullRequestData("Applied dependency updates", "This PR brought to you by sbt-trickle. Please do come again!"),   // TODO
               branchName,
               "master",
               Some(true))
 
-          createPrF.unsafeRunSync.fold(
+          def assignedLabelList(pr: Int) = Github[IO](sys.env.get("GITHUB_TOKEN"))
+            .issues
+            .addLabels(owner, repoSlug, pr, List("version", change))
+
+          val createAndLabelPr = for {
+            response <- createPrF
+            result <- IO.fromEither(response)
+            GHResult(pullRequest, _, _) = result
+            _ <- assignedLabelList(pullRequest.number)
+          } yield pullRequest
+
+          createAndLabelPr.attempt.unsafeRunSync.fold(
             throw _,
             r => log.info(r.toString))
         }
