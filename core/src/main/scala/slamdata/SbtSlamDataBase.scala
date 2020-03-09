@@ -476,7 +476,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
             sys.error("git-clone exited with error")
           }
 
-          val branchName = s"trickle/${System.currentTimeMillis}"
+          val branchName = s"trickle/version-bump-${System.currentTimeMillis()}"
           if (runWithLogger(s"cd $dir; git checkout -b $branchName", log) != 0) {
             sys.error("git-checkout exited with error")
           }
