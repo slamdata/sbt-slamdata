@@ -243,6 +243,13 @@ abstract class SbtSlamDataBase extends AutoPlugin {
 
   override def buildSettings =
     addCommandAlias("ci", "; checkHeaders; test") ++
+    {
+      val vf = file(VersionsPath)
+      if (vf.exists())
+        Seq(managedVersions := ManagedVersions(vf.toPath))
+      else
+        Seq()
+    } ++
     Seq(
       organization := "com.slamdata",
 
@@ -370,8 +377,6 @@ abstract class SbtSlamDataBase extends AutoPlugin {
           file.delete()
         }
       },
-
-      managedVersions := ManagedVersions((baseDirectory.value / VersionsPath).toPath),
 
       // TODO make this suck less
       trickleGithubIsAutobumpPullRequest := { pr =>
