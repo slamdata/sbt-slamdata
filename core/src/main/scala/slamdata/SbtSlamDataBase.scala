@@ -268,6 +268,10 @@ abstract class SbtSlamDataBase extends AutoPlugin {
           case _                            => GitConfig(trickleDbURI.value)
         }
       },
+      // FIXME: implement this
+      trickleGithubIsAutobumpPullRequest := (_ => false),
+      // FIXME: implement this
+      // trickleCreatePullRequest := ???,
 
       transferPublishAndTagResources / aggregate := false,
       transferPublishAndTagResources := {
