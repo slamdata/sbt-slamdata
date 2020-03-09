@@ -286,7 +286,6 @@ abstract class SbtSlamDataBase extends AutoPlugin {
           "core",
           baseDir,
           "publishAndTag",
-          "bumpDependentProject",
           "readVersion",
           "isRevision")
 
