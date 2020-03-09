@@ -44,8 +44,6 @@ import java.nio.file.Files
 
 abstract class SbtSlamDataBase extends AutoPlugin {
 
-  private val VersionsPath = ".versions.json"
-
   private var foundLocalEvictions: Set[(String, String)] = Set()
 
   override def requires =
@@ -57,6 +55,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
   override def trigger = allRequirements
 
   class autoImport extends SbtSlamDataKeys {
+    val VersionsPath = ".versions.json"
     val BothScopes = "test->test;compile->compile"
 
     // Exclusive execution settings
