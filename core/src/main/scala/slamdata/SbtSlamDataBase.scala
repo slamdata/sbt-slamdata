@@ -486,11 +486,13 @@ abstract class SbtSlamDataBase extends AutoPlugin {
           var isBreaking = false
           repo.updates foreach {
             case ModuleUpdateData(_, _, newRevision, dependencyRepo, _) =>
-              val vOld = VersionNumber(managed(dependencyRepo))
-              val vNew = VersionNumber(newRevision)
-              isRevision &&= VersionNumber.SecondSegment.isCompatible(vOld, vNew)
-              isBreaking ||= !VersionNumber.SemVer.isCompatible(vOld, vNew)
-              managed(dependencyRepo) = newRevision
+              managed.get(dependencyRepo) foreach { oldVStr =>
+                val vOld = VersionNumber(oldVStr)
+                val vNew = VersionNumber(newRevision)
+                isRevision &&= VersionNumber.SecondSegment.isCompatible(vOld, vNew)
+                isBreaking ||= !VersionNumber.SemVer.isCompatible(vOld, vNew)
+                managed(dependencyRepo) = newRevision
+              }
           }
 
           val change =

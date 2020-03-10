@@ -33,12 +33,15 @@ final class ManagedVersions private (path: Path) extends BasicJsonProtocol with 
       Converter)(
       IsoString.iso(PrettyPrinter.apply, Parser.parseUnsafe))
 
-  def apply(key: String): String = {
+  def apply(key: String): String =
+    get(key).getOrElse(sys.error(s"unable to find string -> string mapping for key '$key'"))
+
+  def get(key: String): Option[String] = {
     safeRead() match {
       case JObject(values) =>
         values.find(_.field == key) match {
-          case Some(JField(_, JString(value))) => value
-          case _ => sys.error(s"unable to find string -> string mapping for key '$key'")
+          case Some(JField(_, JString(value))) => Some(value)
+          case _ => None
         }
 
       case _ =>
