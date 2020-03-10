@@ -496,8 +496,9 @@ abstract class SbtSlamDataBase extends AutoPlugin {
                 val vNew = VersionNumber(newRevision)
                 isRevision &&= VersionNumber.SecondSegment.isCompatible(vOld, vNew)
                 isBreaking ||= !VersionNumber.SemVer.isCompatible(vOld, vNew)
-                managed(dependencyRepo) = newRevision
               }
+
+              managed(dependencyRepo) = newRevision
           }
 
           val change =
