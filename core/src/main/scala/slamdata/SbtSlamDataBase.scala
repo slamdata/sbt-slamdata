@@ -383,9 +383,9 @@ abstract class SbtSlamDataBase extends AutoPlugin {
           pr.head.exists(_.ref.startsWith("trickle/"))
       })
 
-  private def runWithLogger(command: String, log: Logger): Int = {
-    val plogger = ProcessLogger(log.info(_), log.error(_))
-    command ! plogger
+  private def runWithLogger(command: String, log: Logger, merge: Boolean = false, workingDir: Option[File] = None): Int = {
+    val plogger = ProcessLogger(log.info(_), if (merge) log.info(_) else log.error(_))
+    Process(command, workingDir) ! plogger
   }
 
   def unsafeEvictionsCheckTask: Initialize[Task[UpdateReport]] = Def.task {
@@ -470,12 +470,14 @@ abstract class SbtSlamDataBase extends AutoPlugin {
           }
 
           val dir = Files.createTempDirectory("sbt-slamdata")
-          if (runWithLogger(s"git clone --depth 1 $authenticated ${dir.toFile.getPath}", log) != 0) {
+          val dirFile = dir.toFile
+
+          if (runWithLogger(s"git clone --depth 1 $authenticated ${dirFile.getPath}", log, merge = true) != 0) {
             sys.error("git-clone exited with error")
           }
 
           val branchName = s"trickle/version-bump-${System.currentTimeMillis()}"
-          if (runWithLogger(s"cd $dir; git checkout -b $branchName", log) != 0) {
+          if (runWithLogger(s"git checkout -b $branchName", log, merge = true, workingDir = Some(dirFile)) != 0) {
             sys.error("git-checkout exited with error")
           }
 
@@ -496,11 +498,11 @@ abstract class SbtSlamDataBase extends AutoPlugin {
             else if (isBreaking) "breaking"
             else "feature"
 
-          if (runWithLogger(s"cd $dir; git commit -a -m 'Applied dependency updates' --author='SlamData Bot <bot@slamdata.com>'", log) != 0) {
+          if (runWithLogger(s"git commit -a -m 'Applied dependency updates' --author='SlamData Bot <bot@slamdata.com>'", log, merge = true, workingDir = Some(dirFile)) != 0) {
             sys.error("git-commit exited with error")
           }
 
-          if (runWithLogger(s"cd $dir; git push origin $branchName", log) != 0) {
+          if (runWithLogger(s"git push origin $branchName", log, merge = true, workingDir = Some(dirFile)) != 0) {
             sys.error("git-push exited with error")
           }
 
