@@ -23,6 +23,9 @@ import scala.{Boolean, Unit}
 
 trait SbtSlamDataKeys {
 
+  lazy val managedVersions = settingKey[ManagedVersions](
+    "The trickle-managed versions repository")
+
   lazy val exportSecretsForActions = taskKey[Unit](
     "Uses the GitHub Actions echo syntax and the openssl command to decrypt and export all configured secrets")
 

@@ -19,7 +19,6 @@ package slamdata
 import sbt._, Keys._
 import sbt.Def.Initialize
 import sbt.complete.DefaultParsers.fileParser
-import sbt.internal.util.ManagedLogger
 
 import de.heikoseeberger.sbtheader.AutomateHeaderPlugin
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
@@ -31,6 +30,7 @@ import sbtghactions.GitHubActionsPlugin, GitHubActionsPlugin.autoImport._
 import org.yaml.snakeyaml.Yaml
 
 import sbttrickle.TricklePlugin, TricklePlugin.autoImport._
+import sbttrickle.metadata.{ModuleUpdateData, OutdatedRepository}
 
 import scala.{sys, Boolean, None, Some, StringContext}
 import scala.collection.immutable.{Set, Seq}
@@ -43,6 +43,8 @@ import java.nio.file.attribute.PosixFilePermission, PosixFilePermission.OWNER_EX
 import java.nio.file.Files
 
 abstract class SbtSlamDataBase extends AutoPlugin {
+  private[this] val AutobumpPrTitle = "Applied dependency updates"
+
   private var foundLocalEvictions: Set[(String, String)] = Set()
 
   override def requires =
@@ -54,6 +56,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
   override def trigger = allRequirements
 
   class autoImport extends SbtSlamDataKeys {
+    val VersionsPath = ".versions.json"
     val BothScopes = "test->test;compile->compile"
 
     // Exclusive execution settings
@@ -240,6 +243,13 @@ abstract class SbtSlamDataBase extends AutoPlugin {
 
   override def buildSettings =
     addCommandAlias("ci", "; checkHeaders; test") ++
+    {
+      val vf = file(VersionsPath)
+      if (vf.exists())
+        Seq(managedVersions := ManagedVersions(vf.toPath))
+      else
+        Seq()
+    } ++
     Seq(
       organization := "com.slamdata",
 
@@ -277,7 +287,6 @@ abstract class SbtSlamDataBase extends AutoPlugin {
           "core",
           baseDir,
           "publishAndTag",
-          "bumpDependentProject",
           "readVersion",
           "isRevision")
 
@@ -366,11 +375,23 @@ abstract class SbtSlamDataBase extends AutoPlugin {
         } else {
           file.delete()
         }
+      },
+
+      // TODO make this suck less
+      trickleGithubIsAutobumpPullRequest := { pr =>
+        pr.title == AutobumpPrTitle &&
+          pr.base.exists(_.ref == "master") &&
+          pr.head.exists(_.ref.startsWith("trickle/"))
       })
 
-  private def runWithLogger(command: String, log: ManagedLogger): Int = {
-    val plogger = ProcessLogger(log.info(_), log.error(_))
-    command ! plogger
+  private def runWithLogger(command: String, log: Logger, merge: Boolean = false, workingDir: Option[File] = None): Int = {
+    val plogger = ProcessLogger(log.info(_), if (merge) log.info(_) else log.error(_))
+    Process(command, workingDir) ! plogger
+  }
+
+  private def runWithLoggerSeq(command: Seq[String], log: Logger, merge: Boolean, workingDir: Option[File], env: (String, String)*): Int = {
+    val plogger = ProcessLogger(log.info(_), if (merge) log.info(_) else log.error(_))
+    Process(command, workingDir, env: _*) ! plogger
   }
 
   def unsafeEvictionsCheckTask: Initialize[Task[UpdateReport]] = Def.task {
@@ -426,12 +447,115 @@ abstract class SbtSlamDataBase extends AutoPlugin {
       },
 
       resolvers ++= {
-        if (publishAsOSSProject.value)
+        if (!publishAsOSSProject.value)
           Seq(Resolver.bintrayRepo("slamdata-inc", "maven-private"))
         else
           Seq.empty
-      }
-    )
+      },
 
+      trickleCreatePullRequest := {
+        val prior = trickleCreatePullRequest.value
+        val log = sLog.value
+
+        { (repo: OutdatedRepository) =>
+          import cats.effect.{ContextShift, IO}
+
+          import github4s.Github
+          import github4s.GithubResponses.GHResult
+          import github4s.domain.NewPullRequestData
+
+          import scala.concurrent.ExecutionContext.Implicits.global
+
+          implicit val cs: ContextShift[IO] = IO.contextShift(global)
+
+          prior(repo)
+
+          val authenticated = {
+            val uri = new URI(repo.url)
+            s"${uri.getScheme}://${sys.env("GITHUB_ACTOR")}:${sys.env("GITHUB_TOKEN")}@${uri.getHost}${uri.getPath}"
+          }
+
+          val dir = Files.createTempDirectory("sbt-slamdata")
+          val dirFile = dir.toFile
+
+          if (runWithLogger(s"git clone --depth 1 $authenticated ${dirFile.getPath}", log, merge = true) != 0) {
+            sys.error("git-clone exited with error")
+          }
+
+          val branchName = s"trickle/version-bump-${System.currentTimeMillis()}"
+          if (runWithLogger(s"git checkout -b $branchName", log, merge = true, workingDir = Some(dirFile)) != 0) {
+            sys.error("git-checkout exited with error")
+          }
+
+          val managed = ManagedVersions(dir.resolve(VersionsPath))
+          var isRevision = true
+          var isBreaking = false
+          repo.updates foreach {
+            case ModuleUpdateData(_, _, newRevision, dependencyRepo, _) =>
+              managed.get(dependencyRepo) foreach { oldVStr =>
+                val vOld = VersionNumber(oldVStr)
+                val vNew = VersionNumber(newRevision)
+                isRevision &&= VersionNumber.SecondSegment.isCompatible(vOld, vNew)
+                isBreaking ||= !VersionNumber.SemVer.isCompatible(vOld, vNew)
+              }
+
+              managed(dependencyRepo) = newRevision
+          }
+
+          val change =
+            if (isRevision) "revision"
+            else if (isBreaking) "breaking"
+            else "feature"
+
+          if (runWithLogger(s"git add $VersionsPath", log, merge = true, workingDir = Some(dirFile)) != 0) {
+            sys.error("git-add exited with error")
+          }
+
+          val commitECode = runWithLoggerSeq(
+            Seq("git", "commit", "-m", AutobumpPrTitle),
+            log,
+            true,
+            Some(dirFile),
+            "GIT_AUTHOR_NAME" -> "SlamData Bot",
+            "GIT_AUTHOR_EMAIL" -> "bot@slamdata.com",
+            "GIT_COMMITTER_NAME" -> "SlamData Bot",
+            "GIT_COMMITTER_EMAIL" -> "bot@slamdata.com")
+
+          if (commitECode != 0) {
+            sys.error("git-commit exited with error")
+          }
+
+          if (runWithLogger(s"git push origin $branchName", log, merge = true, workingDir = Some(dirFile)) != 0) {
+            sys.error("git-push exited with error")
+          }
+
+          val (owner, repoSlug) = repo.ownerAndRepository.getOrElse(sys.error(s"invalid url ${repo.url}"))
+
+          val createPrF = Github[IO](sys.env.get("GITHUB_TOKEN"))
+            .pullRequests
+            .createPullRequest(
+              owner,
+              repoSlug,
+              NewPullRequestData(AutobumpPrTitle, "This PR brought to you by sbt-trickle. Please do come again!"),   // TODO
+              branchName,
+              "master",
+              Some(true))
+
+          def assignLabelList(pr: Int) = Github[IO](sys.env.get("GITHUB_TOKEN"))
+            .issues
+            .addLabels(owner, repoSlug, pr, List(s"version: $change"))
+
+          val createAndLabelPr = for {
+            response <- createPrF
+            result <- IO.fromEither(response)
+            GHResult(pullRequest, _, _) = result
+            _ <- assignLabelList(pullRequest.number)
+          } yield pullRequest
+
+          createAndLabelPr.attempt.unsafeRunSync.fold(
+            throw _,
+            r => log.info(s"Opened $owner/$repoSlug#${r.number}"))
+        }
+      })
 }
 
