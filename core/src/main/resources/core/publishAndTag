@@ -19,9 +19,9 @@ openssl aes-256-cbc -md sha1 -pass env:ENCRYPTION_PASSWORD -in signing-secret.pg
 
 # plugins are published to bintray, while artifacts are published to github
 if $SBT 'show sbtPlugin' | grep true; then
-  "$SBT" bintrayEnsureBintrayPackageExists publish bintrayRelease
+  "$SBT" bintrayEnsureBintrayPackageExists publish bintrayRelease trickleUpdateSelf trickleCreatePullRequests
 else
-  "$SBT" +publish
+  "$SBT" +publish trickleUpdateSelf trickleCreatePullRequests
 fi
 
 HEAD_SHA=$(git rev-parse HEAD)
@@ -33,8 +33,8 @@ TAGS_RESP=$(curl -X POST -d '{
     "object": "'"$HEAD_SHA"'",
     "message": "'"$TAG_MSG"'",
     "tagger": {
-      "name": "CI",
-      "email": "builds@travis-ci.com"
+      "name": "SlamData Bot",
+      "email": "bot@slamdata.com"
     },
     "type": "commit"
   }'                                             \

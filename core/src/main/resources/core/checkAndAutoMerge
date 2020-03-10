@@ -3,14 +3,10 @@
 set -euo pipefail # STRICT MODE
 IFS=$'\n\t'        # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 
-if [[ "$VERSIONS" -eq 1 ]]; then
-  git clone --depth 1 https://$GITHUB_TOKEN@github.com/slamdata/devtools.git $CLONE_DIR
-  for t in "$(scripts/listLabels | grep 'version: revision')"; do
-    if ! $CLONE_DIR/bin/sdmerge $REPO_SLUG $PR_NUMBER; then
-      # if we fail to sdmerge, we assume it's a merge conflict and just close the PR
-      scripts/closePR
-    fi
-  done
-else
-  echo 'PR branch is labeled as version: revision, but master is not up to date with revision branch'
-fi
+git clone --depth 1 https://$GITHUB_TOKEN@github.com/slamdata/devtools.git $CLONE_DIR
+for t in "$(scripts/listLabels | grep 'version: revision')"; do
+  if ! $CLONE_DIR/bin/sdmerge $REPO_SLUG $PR_NUMBER; then
+    # if we fail to sdmerge, we assume it's a merge conflict and just close the PR
+    scripts/closePR
+  fi
+done
