@@ -505,7 +505,11 @@ abstract class SbtSlamDataBase extends AutoPlugin {
             else if (isBreaking) "breaking"
             else "feature"
 
-          if (runWithLoggerSeq(Seq("git", "commit", "-a", "-m", "Applied dependency updates", "--author=SlamData Bot <bot@slamdata.com>"), log, true, Some(dirFile)) != 0) {
+          if (runWithLogger(s"git add $VersionsPath", log, merge = true, workingDir = Some(dirFile)) != 0) {
+            sys.error("git-add exited with error")
+          }
+
+          if (runWithLoggerSeq(Seq("git", "commit", "-m", "Applied dependency updates", "--author=SlamData Bot <bot@slamdata.com>"), log, true, Some(dirFile)) != 0) {
             sys.error("git-commit exited with error")
           }
 
