@@ -388,9 +388,9 @@ abstract class SbtSlamDataBase extends AutoPlugin {
     Process(command, workingDir) ! plogger
   }
 
-  private def runWithLoggerSeq(command: Seq[String], log: Logger, merge: Boolean, workingDir: Option[File]): Int = {
+  private def runWithLoggerSeq(command: Seq[String], log: Logger, merge: Boolean, workingDir: Option[File], env: (String, String)*): Int = {
     val plogger = ProcessLogger(log.info(_), if (merge) log.info(_) else log.error(_))
-    Process(command, workingDir) ! plogger
+    Process(command, workingDir, env: _*) ! plogger
   }
 
   def unsafeEvictionsCheckTask: Initialize[Task[UpdateReport]] = Def.task {
@@ -509,7 +509,17 @@ abstract class SbtSlamDataBase extends AutoPlugin {
             sys.error("git-add exited with error")
           }
 
-          if (runWithLoggerSeq(Seq("git", "commit", "-m", "Applied dependency updates", "--author=SlamData Bot <bot@slamdata.com>"), log, true, Some(dirFile)) != 0) {
+          val commitECode = runWithLoggerSeq(
+            Seq("git", "commit", "-m", "Applied dependency updates"),
+            log,
+            true,
+            Some(dirFile),
+            "GIT_AUTHOR_NAME" -> "SlamData Bot",
+            "GIT_AUTHOR_EMAIL" -> "bot@slamdata.com",
+            "GIT_COMMITTER_NAME" -> "SlamData Bot",
+            "GIT_COMMITTER_EMAIL" -> "bot@slamdata.com")
+
+          if (commitECode != 0) {
             sys.error("git-commit exited with error")
           }
 
@@ -542,7 +552,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
 
           createAndLabelPr.attempt.unsafeRunSync.fold(
             throw _,
-            r => log.info(r.toString))
+            r => log.info(s"Opened $owner/$repoSlug#${r.number}"))
         }
       })
 }
