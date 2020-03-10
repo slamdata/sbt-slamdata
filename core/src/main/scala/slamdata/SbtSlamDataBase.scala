@@ -388,6 +388,11 @@ abstract class SbtSlamDataBase extends AutoPlugin {
     Process(command, workingDir) ! plogger
   }
 
+  private def runWithLoggerSeq(command: Seq[String], log: Logger, merge: Boolean, workingDir: Option[File]): Int = {
+    val plogger = ProcessLogger(log.info(_), if (merge) log.info(_) else log.error(_))
+    Process(command, workingDir) ! plogger
+  }
+
   def unsafeEvictionsCheckTask: Initialize[Task[UpdateReport]] = Def.task {
     val currentProject = thisProjectRef.value.project
     val module = ivyModule.value
@@ -500,7 +505,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
             else if (isBreaking) "breaking"
             else "feature"
 
-          if (runWithLogger(s"git commit -a -m 'Applied dependency updates' --author='SlamData Bot <bot@slamdata.com>'", log, merge = true, workingDir = Some(dirFile)) != 0) {
+          if (runWithLoggerSeq(Seq("git", "commit", "-a", "-m", "Applied dependency updates", "--author=SlamData Bot <bot@slamdata.com>"), log, true, Some(dirFile)) != 0) {
             sys.error("git-commit exited with error")
           }
 
