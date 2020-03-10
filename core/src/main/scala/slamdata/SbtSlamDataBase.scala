@@ -43,6 +43,7 @@ import java.nio.file.attribute.PosixFilePermission, PosixFilePermission.OWNER_EX
 import java.nio.file.Files
 
 abstract class SbtSlamDataBase extends AutoPlugin {
+  private[this] val AutobumpPrTitle = "Applied dependency updates"
 
   private var foundLocalEvictions: Set[(String, String)] = Set()
 
@@ -378,7 +379,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
 
       // TODO make this suck less
       trickleGithubIsAutobumpPullRequest := { pr =>
-        pr.title == "Applied dependency updates" &&
+        pr.title == AutobumpPrTitle &&
           pr.base.exists(_.ref == "master") &&
           pr.head.exists(_.ref.startsWith("trickle/"))
       })
@@ -511,7 +512,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
           }
 
           val commitECode = runWithLoggerSeq(
-            Seq("git", "commit", "-m", "Applied dependency updates"),
+            Seq("git", "commit", "-m", AutobumpPrTitle),
             log,
             true,
             Some(dirFile),
@@ -535,12 +536,12 @@ abstract class SbtSlamDataBase extends AutoPlugin {
             .createPullRequest(
               owner,
               repoSlug,
-              NewPullRequestData("Applied dependency updates", "This PR brought to you by sbt-trickle. Please do come again!"),   // TODO
+              NewPullRequestData(AutobumpPrTitle, "This PR brought to you by sbt-trickle. Please do come again!"),   // TODO
               branchName,
               "master",
               Some(true))
 
-          def assignedLabelList(pr: Int) = Github[IO](sys.env.get("GITHUB_TOKEN"))
+          def assignLabelList(pr: Int) = Github[IO](sys.env.get("GITHUB_TOKEN"))
             .issues
             .addLabels(owner, repoSlug, pr, List(s"version: $change"))
 
@@ -548,7 +549,7 @@ abstract class SbtSlamDataBase extends AutoPlugin {
             response <- createPrF
             result <- IO.fromEither(response)
             GHResult(pullRequest, _, _) = result
-            _ <- assignedLabelList(pullRequest.number)
+            _ <- assignLabelList(pullRequest.number)
           } yield pullRequest
 
           createAndLabelPr.attempt.unsafeRunSync.fold(
