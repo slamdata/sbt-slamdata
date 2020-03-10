@@ -34,7 +34,7 @@ final class ManagedVersions private (path: Path) extends BasicJsonProtocol with 
       IsoString.iso(PrettyPrinter.apply, Parser.parseUnsafe))
 
   def apply(key: String): String = {
-    store.read[JValue]() match {
+    safeRead() match {
       case JObject(values) =>
         values.find(_.field == key) match {
           case Some(JField(_, JString(value))) => value
@@ -47,7 +47,7 @@ final class ManagedVersions private (path: Path) extends BasicJsonProtocol with 
   }
 
   def update(key: String, version: String): Unit = {
-    store.read[JValue]() match {
+    safeRead() match {
       case JObject(values) =>
         var i = 0
         var done = false
@@ -74,6 +74,17 @@ final class ManagedVersions private (path: Path) extends BasicJsonProtocol with 
 
       case _ =>
         sys.error(s"unable to parse managed versions store at $path")
+    }
+  }
+
+  private[this] def safeRead(): JValue = {
+    try {
+      store.read[JValue]()
+    } catch {
+      case _: sbt.internal.util.EmptyCacheError =>
+        val back = JObject(Array[JField]())
+        store.write(back)
+        back
     }
   }
 }
