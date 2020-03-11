@@ -507,18 +507,18 @@ abstract class SbtSlamDataBase extends AutoPlugin {
             else if (isBreaking) "breaking"
             else "feature"
 
+          val dependencyCheck = repo.updates
+            .map(u => s"${u.dependency.organization}:${u.dependency.name}:${u.newRevision}")
+            .mkString("trickleCheckVersion ", " ", "")
+
+          if (runWithLoggerSeq(Seq("sbt", dependencyCheck), log, merge=true, Some(dirFile)) != 0) {
+            sys.error(s"repository ${repo.repository} did not apply versions file correctly")
+          }
+
           if (runWithLoggerSeq(Seq("sbt", "update"), log, merge=true, Some(dirFile)) != 0) {
             log.warn("was unable to run `sbt update` following the trickle application")
             log.warn("this may mean that the some artifacts are not yet propagated; skipping")
           } else {
-            val dependencyCheck = repo.updates
-              .map(u => s"${u.dependency.organization}:${u.dependency.name}:${u.newRevision}")
-              .mkString("trickleCheckVersion ", " ", "")
-
-            if (runWithLoggerSeq(Seq("sbt", dependencyCheck), log, merge=true, Some(dirFile)) != 0) {
-              sys.error(s"repository ${repo.repository} did not apply versions file correctly")
-            }
-
             if (runWithLogger(s"git add $VersionsPath", log, merge = true, workingDir = Some(dirFile)) != 0) {
               sys.error("git-add exited with error")
             }
