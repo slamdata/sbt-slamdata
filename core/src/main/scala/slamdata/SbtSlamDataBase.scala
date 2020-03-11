@@ -510,59 +510,66 @@ abstract class SbtSlamDataBase extends AutoPlugin {
           val dependencyCheck = repo.updates
             .map(u => s"${u.dependency.organization}:${u.dependency.name}:${u.newRevision}")
             .mkString("trickleCheckVersion ", " ", "")
-          
+
           if (runWithLoggerSeq(Seq("sbt", dependencyCheck), log, merge=true, Some(dirFile)) != 0) {
             sys.error(s"repository ${repo.repository} did not apply versions file correctly")
           }
 
-          if (runWithLogger(s"git add $VersionsPath", log, merge = true, workingDir = Some(dirFile)) != 0) {
-            sys.error("git-add exited with error")
+          if (runWithLoggerSeq(Seq("sbt", "update"), log, merge=true, Some(dirFile)) != 0) {
+            log.warn("was unable to run `sbt update` following the trickle application")
+            log.warn("this may mean that the some artifacts are not yet propagated; skipping")
+          } else {
+            if (runWithLogger(s"git add $VersionsPath", log, merge = true, workingDir = Some(dirFile)) != 0) {
+              sys.error("git-add exited with error")
+            }
+
+            val commitECode = runWithLoggerSeq(
+              Seq("git", "commit", "-m", AutobumpPrTitle),
+              log,
+              true,
+              Some(dirFile),
+              "GIT_AUTHOR_NAME" -> "SlamData Bot",
+              "GIT_AUTHOR_EMAIL" -> "bot@slamdata.com",
+              "GIT_COMMITTER_NAME" -> "SlamData Bot",
+              "GIT_COMMITTER_EMAIL" -> "bot@slamdata.com")
+
+            if (commitECode != 0) {
+              log.warn("git-commit exited with error")
+              log.warn("this usually means the target repository was *already* at the latest version but hasn't published yet")
+              log.warn("you should check for a stuck trickle PR on that repository")
+            } else {
+              if (runWithLogger(s"git push origin $branchName", log, merge = true, workingDir = Some(dirFile)) != 0) {
+                sys.error("git-push exited with error")
+              }
+
+              val (owner, repoSlug) = repo.ownerAndRepository.getOrElse(sys.error(s"invalid url ${repo.url}"))
+
+              val createPrF = Github[IO](sys.env.get("GITHUB_TOKEN"))
+                .pullRequests
+                .createPullRequest(
+                  owner,
+                  repoSlug,
+                  NewPullRequestData(AutobumpPrTitle, "This PR brought to you by sbt-trickle. Please do come again!"),   // TODO
+                  branchName,
+                  "master",
+                  Some(true))
+
+              def assignLabelList(pr: Int) = Github[IO](sys.env.get("GITHUB_TOKEN"))
+                .issues
+                .addLabels(owner, repoSlug, pr, List(s"version: $change"))
+
+              val createAndLabelPr = for {
+                response <- createPrF
+                result <- IO.fromEither(response)
+                GHResult(pullRequest, _, _) = result
+                _ <- assignLabelList(pullRequest.number)
+              } yield pullRequest
+
+              createAndLabelPr.attempt.unsafeRunSync.fold(
+                throw _,
+                r => log.info(s"Opened $owner/$repoSlug#${r.number}"))
+            }
           }
-
-          val commitECode = runWithLoggerSeq(
-            Seq("git", "commit", "-m", AutobumpPrTitle),
-            log,
-            true,
-            Some(dirFile),
-            "GIT_AUTHOR_NAME" -> "SlamData Bot",
-            "GIT_AUTHOR_EMAIL" -> "bot@slamdata.com",
-            "GIT_COMMITTER_NAME" -> "SlamData Bot",
-            "GIT_COMMITTER_EMAIL" -> "bot@slamdata.com")
-
-          if (commitECode != 0) {
-            sys.error("git-commit exited with error")
-          }
-
-          if (runWithLogger(s"git push origin $branchName", log, merge = true, workingDir = Some(dirFile)) != 0) {
-            sys.error("git-push exited with error")
-          }
-
-          val (owner, repoSlug) = repo.ownerAndRepository.getOrElse(sys.error(s"invalid url ${repo.url}"))
-
-          val createPrF = Github[IO](sys.env.get("GITHUB_TOKEN"))
-            .pullRequests
-            .createPullRequest(
-              owner,
-              repoSlug,
-              NewPullRequestData(AutobumpPrTitle, "This PR brought to you by sbt-trickle. Please do come again!"),   // TODO
-              branchName,
-              "master",
-              Some(true))
-
-          def assignLabelList(pr: Int) = Github[IO](sys.env.get("GITHUB_TOKEN"))
-            .issues
-            .addLabels(owner, repoSlug, pr, List(s"version: $change"))
-
-          val createAndLabelPr = for {
-            response <- createPrF
-            result <- IO.fromEither(response)
-            GHResult(pullRequest, _, _) = result
-            _ <- assignLabelList(pullRequest.number)
-          } yield pullRequest
-
-          createAndLabelPr.attempt.unsafeRunSync.fold(
-            throw _,
-            r => log.info(s"Opened $owner/$repoSlug#${r.number}"))
         }
       })
 }
